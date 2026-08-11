@@ -1,0 +1,7 @@
+node_modules/
+package-lock.json
+*.log
+
+# labpress scratch output
+*.labpress.html
+out/

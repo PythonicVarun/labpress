@@ -1,0 +1,41 @@
+{
+    "name": "labpress",
+    "version": "1.0.0",
+    "description": "Turn a folder of lab programs into a print-ready record: syntax-highlighted source, real inputs, real captured output.",
+    "keywords": [
+        "lab",
+        "college",
+        "assignment",
+        "practical",
+        "syntax-highlighting",
+        "pdf",
+        "print",
+        "shiki"
+    ],
+    "license": "MIT",
+    "author": {
+        "name": "Varun Agnihotri",
+        "email": "code@pythonicvarun.me"
+    },
+    "type": "module",
+    "bin": {
+        "labpress": "src/cli.js"
+    },
+    "exports": {
+        ".": "./src/index.js"
+    },
+    "files": [
+        "src",
+        "README.md",
+        "LICENSE"
+    ],
+    "engines": {
+        "node": ">=20"
+    },
+    "dependencies": {
+        "shiki": "^4.4.3"
+    },
+    "scripts": {
+        "labpress": "node src/cli.js"
+    }
+}
