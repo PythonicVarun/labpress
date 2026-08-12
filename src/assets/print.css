@@ -1,0 +1,522 @@
+/*
+ * Light is the default because this document exists to be printed.
+ * Dark is only for reading it on screen before you hit print.
+ */
+:root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --surface-strong: #eef1f5;
+    --text: #1c2024;
+    --muted: #5b6570;
+    --border: #d8dee4;
+    --accent: #0b5fff;
+    --accent-soft: #e7efff;
+    --input-bg: #fff3d6;
+    --input-text: #7a4b00;
+    --danger: #b42318;
+    --danger-soft: #fdecea;
+    --radius: 8px;
+    --font:
+        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    --mono:
+        ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code",
+        Menlo, Consolas, monospace;
+    --code-size: 10.5pt;
+}
+
+html.dark-theme {
+    --bg: #0f1216;
+    --surface: #161b22;
+    --surface-strong: #1c232c;
+    --text: #e6edf3;
+    --muted: #9aa7b4;
+    --border: #2a323c;
+    --accent: #6ea8ff;
+    --accent-soft: #16243d;
+    --input-bg: #3a2f12;
+    --input-text: #ffd479;
+    --danger: #ff7b72;
+    --danger-soft: #2d1a18;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11pt;
+    line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.doc {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 16mm 14mm 24mm;
+}
+
+/* Screen-only controls. They disappear entirely when printing. */
+.toolbar {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+}
+
+.toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.toolbar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.theme-toggle-btn {
+    position: relative;
+    width: 38px;
+    padding: 0;
+    overflow: hidden;
+    justify-content: center;
+}
+
+.theme-toggle-btn span {
+    position: absolute;
+    font-size: 1rem;
+    line-height: 1;
+    transition:
+        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sun-icon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0);
+}
+
+.moon-icon {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+html.dark-theme .sun-icon {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+html.dark-theme .moon-icon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0);
+}
+
+/* Cover */
+.cover {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 40px 0 56px;
+}
+
+.cover-subject {
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.cover h1 {
+    margin: 8px 0 4px;
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.cover-rule {
+    width: 72px;
+    height: 3px;
+    margin: 18px 0 22px;
+    border-radius: 999px;
+    background: var(--accent);
+}
+
+.cover-details {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px 18px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.cover-details dt {
+    color: var(--muted);
+}
+
+.cover-details dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* Contents */
+.toc {
+    break-after: page;
+}
+
+.toc h2,
+.program h2 {
+    font-size: 1.25rem;
+    margin: 0 0 12px;
+}
+
+.toc ol {
+    margin: 0;
+    padding-left: 1.3em;
+}
+
+.toc li {
+    margin: 4px 0;
+}
+
+.toc a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.toc .toc-path {
+    color: var(--muted);
+    font-size: 0.85em;
+    font-family: var(--mono);
+}
+
+/* Programs */
+.program {
+    break-before: page;
+    padding-top: 4px;
+}
+
+.program:first-of-type {
+    break-before: auto;
+}
+
+.program-index {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.program header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+}
+
+.program h2 {
+    margin: 2px 0 6px;
+}
+
+.program-meta {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.aim {
+    margin: 12px 0 0;
+}
+
+.aim strong {
+    color: var(--accent);
+}
+
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 20px 0 8px;
+}
+
+/* Source code */
+.code {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.code pre.shiki {
+    margin: 0;
+    padding: 12px 14px 12px 0;
+    background: transparent !important;
+    font-family: var(--mono);
+    font-size: var(--code-size);
+    line-height: 1.5;
+    /* Long lines wrap instead of being clipped off the printed page. */
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.code code {
+    counter-reset: line;
+    display: block;
+}
+
+.code .line {
+    counter-increment: line;
+    display: block;
+    padding-left: 3.6em;
+    text-indent: -0.1em;
+    position: relative;
+}
+
+.code .line::before {
+    content: counter(line);
+    position: absolute;
+    left: 0;
+    width: 2.8em;
+    text-align: right;
+    color: var(--muted);
+    opacity: 0.65;
+    user-select: none;
+}
+
+/* Shiki writes both palettes as custom properties; pick one per theme. */
+.shiki,
+.shiki span {
+    color: var(--sh-light);
+}
+
+html.dark-theme .shiki,
+html.dark-theme .shiki span {
+    color: var(--sh-dark);
+}
+
+/* Runs */
+.run {
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    break-inside: avoid;
+}
+
+.run-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 12px;
+    background: var(--surface-strong);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.run-label {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.run-note {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.terminal {
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: var(--code-size);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.terminal .typed {
+    background: var(--input-bg);
+    color: var(--input-text);
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 0 3px;
+    /* Bold plus a box keeps typed input visible on a black-and-white printer. */
+    box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.18);
+}
+
+.terminal .stderr {
+    color: var(--danger);
+}
+
+.terminal .meta {
+    color: var(--muted);
+    font-style: italic;
+}
+
+.split-part + .split-part {
+    border-top: 1px solid var(--border);
+}
+
+.split-title {
+    padding: 6px 12px 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.status {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-top: 1px solid var(--border);
+}
+
+.status.info {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.empty {
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* Footer repeats on every printed page in Chrome. */
+.page-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 6px 14mm;
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-align: center;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+.page-footer a {
+    color: inherit;
+}
+
+@page {
+    size: A4;
+    margin: 16mm 12mm 18mm;
+}
+
+@media print {
+    /* Force the light palette: dark backgrounds waste ink and read badly. */
+    :root,
+    html.dark-theme {
+        --bg: #ffffff;
+        --surface: #f7f8fa;
+        --surface-strong: #eef1f5;
+        --text: #000000;
+        --muted: #4a5560;
+        --border: #c8d0d8;
+        --accent: #0b3ea8;
+        --accent-soft: #eaf0fd;
+        --input-bg: #fff0cc;
+        --input-text: #5a3600;
+        --danger: #96150c;
+        --danger-soft: #fdecea;
+    }
+
+    html.dark-theme .shiki,
+    html.dark-theme .shiki span {
+        color: var(--sh-light);
+    }
+
+    body {
+        font-size: 10.5pt;
+    }
+
+    .doc {
+        max-width: none;
+        margin: 0;
+        padding: 0 0 10mm;
+    }
+
+    .toolbar {
+        display: none !important;
+    }
+
+    .page-footer {
+        border-top: none;
+    }
+
+    .run,
+    .cover,
+    .program header {
+        break-inside: avoid;
+    }
+
+    .code {
+        break-inside: auto;
+    }
+
+    a {
+        text-decoration: none;
+        color: inherit;
+    }
+}
+
+/* Standard cross-fade only where View Transitions aren't available. */
+@supports not (view-transition-name: root) {
+    body,
+    .toolbar button,
+    .code,
+    .run {
+        transition:
+            background-color 0.4s ease,
+            border-color 0.4s ease,
+            color 0.4s ease;
+    }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+    z-index: 9999;
+}
+
+::view-transition-old(root) {
+    z-index: 1;
+}
