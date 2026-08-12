@@ -120,7 +120,7 @@ export function execute({
     inputs = [],
     timeout = 20_000,
     idleMs = 150,
-    maxOutputBytes = 512 * 1024,
+    maxOutputBytes = 64 * 1024,
 } = {}) {
     return new Promise((resolve) => {
         const events = [];
