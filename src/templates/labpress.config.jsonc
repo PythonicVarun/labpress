@@ -1,0 +1,65 @@
+{
+    // Everything here is optional. Delete what you don't need.
+    // Run `npx labpress .` in this folder once you're done editing.
+
+    "title": "__TITLE__",
+
+    // Shown on the cover page. Blank fields are skipped, so fill in
+    // only the ones your college actually asks for.
+    "student": {
+        "name": "",
+        "roll": "",
+        "course": "",
+        "branch": "",
+        "section": "",
+        "semester": "",
+        "subject": "",
+        "teacher": "",
+        "university": ""
+    },
+
+    "cover": true,
+    "toc": true,
+
+    // Any theme Shiki ships, e.g. github-light, one-light, min-light,
+    // catppuccin-latte, vitesse-light. A matching dark theme is picked
+    // automatically for on-screen reading; printing is always light.
+    "theme": "github-light",
+
+    // "interleaved" reads like a real terminal session: prompts and the
+    // values you typed, inline. "split" shows Input and Output separately.
+    "transcript": "interleaved",
+
+    // false removes the labpress credit line; a string replaces it.
+    "footer": true,
+
+    // Which files become programs.
+    "include": ["**/*.{c,cc,cxx,cpp,py,java}"],
+    "exclude": ["**/scratch/**"],
+
+    // Programs not listed here follow in natural sorted order.
+    "order": [
+        // "Week-01/bit_stuffing.cpp"
+    ],
+
+    "defaults": {
+        "timeout": 20000, // per run, milliseconds
+        "idleMs": 150, // quiet period before the next input is typed
+        "unbuffer": "auto", // "auto" | true | false
+        "compileTimeout": 60000
+    },
+
+    // Override how a whole language is built or run.
+    // Placeholders: {file} {dir} {stem} {bin} {buildDir} {class}
+    "languages": {
+        // "cpp":  { "compile": "g++ -O2 -std=c++17 -o {bin} {file}", "run": "{bin}" },
+        // "c":    { "compile": "gcc -O2 -o {bin} {file}", "run": "{bin}" },
+        // "py":   { "run": "python3 -u {file}" },
+        // "java": { "compile": "javac -d {buildDir} {file}", "run": "java -cp {buildDir} {class}" }
+    },
+
+    // Per-program settings, keyed by path relative to this folder.
+    "programs": {
+        __PROGRAMS__
+    }
+}
