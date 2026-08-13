@@ -35,7 +35,11 @@ function placeholdersFor(program, index, buildDir, source) {
 
 /** Compile if the language needs it, then run every configured input set. */
 async function buildProgram(program, index, { buildDir, skipRun, onProgress }) {
-    const source = await readFile(program.absolutePath, "utf8");
+    // Trailing newlines would render as an extra numbered blank line.
+    const source = (await readFile(program.absolutePath, "utf8")).replace(
+        /\s+$/,
+        "",
+    );
     const vars = placeholdersFor(program, index, buildDir, source);
     const result = { ...program, source, compileError: null, transcripts: [] };
 

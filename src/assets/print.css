@@ -140,6 +140,7 @@ html.dark-theme .moon-icon {
     text-align: center;
     gap: 6px;
     padding: 40px 0 56px;
+    break-after: page;
 }
 
 .cover-subject {
@@ -261,6 +262,8 @@ html.dark-theme .moon-icon {
     text-transform: uppercase;
     color: var(--muted);
     margin: 20px 0 8px;
+    /* Never let a heading sit alone at the foot of a page. */
+    break-after: avoid;
 }
 
 /* Source code */
@@ -295,6 +298,9 @@ html.dark-theme .moon-icon {
     padding-left: 3.6em;
     text-indent: -0.1em;
     position: relative;
+    /* Blank lines have no content, so without a floor they collapse to zero
+       height and their line number lands on top of the next one. */
+    min-height: 1.5em;
 }
 
 .code .line::before {
@@ -482,6 +488,10 @@ html.dark-theme .shiki span {
     .cover,
     .program header {
         break-inside: avoid;
+    }
+
+    .program header {
+        break-after: avoid;
     }
 
     .code {

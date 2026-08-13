@@ -48,12 +48,16 @@ export async function createCodeHighlighter(languageIds, theme) {
          */
         highlight(code, languageId) {
             const lang = LANGUAGES[languageId]?.shikiLang ?? "text";
-            return highlighter.codeToHtml(code, {
+            const html = highlighter.codeToHtml(code, {
                 lang,
                 themes: { light, dark },
                 defaultColor: false,
                 cssVariablePrefix: "--sh-",
             });
+            // Shiki separates line spans with a real newline. Those spans are
+            // display:block for line numbering, so the newline would render as
+            // a second blank line and double-space the whole listing.
+            return html.replace(/\n(<span class="line")/g, "$1");
         },
         dispose() {
             highlighter.dispose();
