@@ -68,8 +68,25 @@ function collapseSegment(segment) {
     }));
 }
 
+/**
+ * Turn a few well-known error messages into something actionable, since the
+ * raw text rarely tells a student what to actually change.
+ */
+function hintFor(result) {
+    const text = `${result.stderr ?? ""}`;
+    if (text.includes("UnsupportedClassVersionError")) {
+        return (
+            "Your javac is newer than your java runtime. Either upgrade the JRE, " +
+            'or set "compile": "javac --release <version> -d {buildDir} {file}" in the config.'
+        );
+    }
+    return null;
+}
+
 /** Short sentence describing how a run ended, or null if it was clean. */
 export function describeStatus(result) {
+    const hint = hintFor(result);
+    if (hint) return hint;
     if (result.error) return result.error;
     if (result.timedOut) {
         return "Stopped by labpress after the time limit - the program was still running.";
@@ -101,7 +118,10 @@ export function buildTranscript(result, run, { mode = "interleaved" } = {}) {
         mode: effective,
         downgraded: forcedSplit,
         status: describeStatus(result),
-        failed: Boolean(result.error) || result.timedOut,
+        failed:
+            Boolean(result.error) ||
+            result.timedOut ||
+            (result.exitCode !== null && result.exitCode !== 0),
         exitCode: result.exitCode,
         hasInput: run.inputs.length > 0,
         args: run.args,
