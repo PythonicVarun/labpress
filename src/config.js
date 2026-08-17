@@ -102,8 +102,10 @@ export function parseJsonc(text, file) {
         const line = position
             ? cleaned.slice(0, Number(position)).split("\n").length
             : null;
+
+        const detail = error.message.replace(/\s+/g, " ").trim();
         throw new Error(
-            `Could not parse ${file}${line ? ` (line ${line})` : ""}: ${error.message}`,
+            `Could not parse ${file}${line ? ` (line ${line})` : ""}: ${detail}`,
         );
     }
 }
