@@ -103,6 +103,7 @@ export function naturalCompare(a, b) {
 
 // Lab filenames are full of these, and "Crc" reads badly on a cover page.
 // Anything missing here can still be fixed with an explicit title in config.
+// prettier-ignore
 const ACRONYMS = new Set([
     "crc", "tcp", "udp", "ip", "http", "https", "ftp", "dns", "arp", "rarp",
     "icmp", "smtp", "dhcp", "nat", "vpn", "lan", "wan", "man", "osi", "mac",
