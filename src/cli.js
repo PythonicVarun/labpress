@@ -340,12 +340,20 @@ async function writeDocuments(documents, values) {
     for (const document of documents) {
         const file =
             single && values.out
-                ? path.resolve(values.out)
+                ? htmlPathFor(values.out)
                 : path.join(directory, `${document.name}.html`);
         await writeFile(file, document.html, "utf8");
         outputs.push({ group: document.group, html: file, pdf: null });
     }
     return outputs;
+}
+
+/**
+ * `-o record.pdf` reads as "put the PDF there", not "name the HTML record.pdf",
+ * so swap the extension - otherwise --pdf would write record.pdf.pdf beside it.
+ */
+function htmlPathFor(out) {
+    return path.resolve(out).replace(/\.pdf$/i, ".html");
 }
 
 /** Surface anything a student would want to fix before submitting. */
