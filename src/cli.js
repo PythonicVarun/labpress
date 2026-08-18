@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { mkdtemp, writeFile, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +31,7 @@ const OPTIONS = {
     only: { type: "string", multiple: true },
     timeout: { type: "string" },
     pdf: { type: "boolean" },
+    split: { type: "boolean" },
     "no-open": { type: "boolean" },
     "no-footer": { type: "boolean" },
     "no-run": { type: "boolean" },
@@ -51,7 +52,8 @@ Usage
   npx labpress themes                       list available syntax themes
 
 Options
-  -o, --out <path>        where to write the HTML (default: a temp file)
+  -o, --out <path>        where to write the HTML (a directory when --split)
+      --split             one document per subfolder, e.g. one PDF per week
       --pdf               also write a PDF, using your installed Chrome
       --no-open           don't launch the browser
       --no-run            just render the source, don't execute anything
@@ -72,6 +74,7 @@ Options
 Examples
   npx labpress ./labs
   npx labpress ./labs --pdf --no-footer
+  npx labpress ./labs --split --pdf -o ./records
   npx labpress ./labs --only "Week-03/**"
   npx labpress init ./labs
 `;
@@ -129,6 +132,7 @@ function overridesFrom(values) {
     if (values.transcript) overrides.transcript = values.transcript;
     if (values.title) overrides.title = values.title;
     if (values["no-footer"]) overrides.footer = false;
+    if (values.split) overrides.split = true;
     if (values.timeout) {
         overrides.defaults = { timeout: Number(values.timeout) };
     }
@@ -229,7 +233,7 @@ async function runBuild(target, values, log) {
         },
     });
 
-    if (!result.html) {
+    if (result.documents.length === 0) {
         log.warn(
             `No programs found under ${result.root}. ` +
                 `Check the include patterns, or that the files are .c/.cpp/.py/.java.`,
@@ -237,16 +241,8 @@ async function runBuild(target, values, log) {
         return { code: EXIT.nothingFound };
     }
 
-    const outPath = values.out
-        ? path.resolve(values.out)
-        : path.join(
-              await mkdtemp(path.join(tmpdir(), "labpress-")),
-              "index.html",
-          );
-    await writeFile(outPath, result.html, "utf8");
-
+    const outputs = await writeDocuments(result.documents, values);
     const problems = collectProblems(result.programs);
-    let pdfPath = null;
     let pdfError = null;
 
     if (values.pdf) {
@@ -255,11 +251,14 @@ async function runBuild(target, values, log) {
             pdfError =
                 "No Chrome/Chromium/Edge found for --pdf. Set CHROME_PATH, or open the HTML and print from there.";
         } else {
-            pdfPath = outPath.replace(/\.html?$/i, "") + ".pdf";
-            const outcome = await printToPdf(chrome, outPath, pdfPath);
-            if (!outcome.ok) {
-                pdfError = `PDF generation failed: ${outcome.message}`;
-                pdfPath = null;
+            for (const output of outputs) {
+                const target = `${output.html.replace(/\.html?$/i, "")}.pdf`;
+                const outcome = await printToPdf(chrome, output.html, target);
+                if (outcome.ok) {
+                    output.pdf = target;
+                } else {
+                    pdfError = `PDF generation failed: ${outcome.message}`;
+                }
             }
         }
     }
@@ -268,8 +267,11 @@ async function runBuild(target, values, log) {
         process.stdout.write(
             `${JSON.stringify(
                 {
-                    html: outPath,
-                    pdf: pdfPath,
+                    documents: outputs.map((output) => ({
+                        group: output.group,
+                        html: output.html,
+                        pdf: output.pdf,
+                    })),
                     root: result.root,
                     config: result.configPath,
                     programs: result.programs.map((program) => ({
@@ -290,23 +292,60 @@ async function runBuild(target, values, log) {
         );
     } else {
         log.info("");
-        log.info(`  ${result.programs.length} program(s) -> ${outPath}`);
-        if (pdfPath) log.info(`  pdf -> ${pdfPath}`);
+        log.info(
+            `  ${result.programs.length} program(s) in ${outputs.length} document(s)`,
+        );
+        for (const output of outputs) {
+            log.info(`  ${output.pdf ?? output.html}`);
+        }
         for (const problem of problems) log.warn(`  ! ${problem}`);
     }
 
     if (pdfError) {
         log.warn(`  ! ${pdfError}`);
-        return { code: EXIT.pdfFailed, outPath };
+        return { code: EXIT.pdfFailed };
     }
 
     if (!values["no-open"] && !values.json) {
-        const opened = await openInBrowser(pdfPath ?? outPath);
-        if (!opened)
-            log.warn(`  couldn't open a browser; the file is at ${outPath}`);
+        for (const output of outputs) {
+            const opened = await openInBrowser(output.pdf ?? output.html);
+            if (!opened) {
+                log.warn(
+                    `  couldn't open a browser; the file is at ${output.html}`,
+                );
+                break;
+            }
+        }
     }
 
-    return { code: problems.length ? EXIT.programFailed : EXIT.ok, outPath };
+    return { code: problems.length ? EXIT.programFailed : EXIT.ok };
+}
+
+/**
+ * Write each rendered document to disk. With one document --out is the file
+ * itself; with several it's the directory they go into.
+ */
+async function writeDocuments(documents, values) {
+    const single = documents.length === 1 && documents[0].group === null;
+
+    const directory = values.out
+        ? single
+            ? path.dirname(path.resolve(values.out))
+            : path.resolve(values.out)
+        : await mkdtemp(path.join(tmpdir(), "labpress-"));
+
+    await mkdir(directory, { recursive: true });
+
+    const outputs = [];
+    for (const document of documents) {
+        const file =
+            single && values.out
+                ? path.resolve(values.out)
+                : path.join(directory, `${document.name}.html`);
+        await writeFile(file, document.html, "utf8");
+        outputs.push({ group: document.group, html: file, pdf: null });
+    }
+    return outputs;
 }
 
 /** Surface anything a student would want to fix before submitting. */

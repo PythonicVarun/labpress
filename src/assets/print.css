@@ -157,6 +157,14 @@ html.dark-theme .moon-icon {
     letter-spacing: -0.01em;
 }
 
+.cover-group {
+    margin-top: 6px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+}
+
 .cover-rule {
     width: 72px;
     height: 3px;

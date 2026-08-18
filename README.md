@@ -179,26 +179,47 @@ npx labpress list [directory]   show what would be included
 npx labpress themes             list available syntax themes
 ```
 
-| Flag                  | Effect                                         |
-| --------------------- | ---------------------------------------------- |
-| `-o, --out <path>`    | Where to write the HTML (default: a temp file) |
-| `--pdf`               | Also write a PDF using your installed Chrome   |
-| `--no-open`           | Don't launch the browser                       |
-| `--no-run`            | Render the source only, execute nothing        |
-| `--no-footer`         | Drop the labpress credit line                  |
-| `--theme <name>`      | Any theme Shiki ships                          |
-| `--transcript <mode>` | `interleaved` or `split`                       |
-| `--title <text>`      | Document title                                 |
-| `--only <glob>`       | Limit to matching files, repeatable            |
-| `--timeout <ms>`      | Per-run time limit                             |
-| `-c, --config <path>` | Use a specific config file                     |
-| `--keep`              | Keep the temporary build directory             |
-| `--json`              | Machine-readable output on stdout              |
-| `-q, --quiet`         | Only report problems                           |
+| Flag                  | Effect                                               |
+| --------------------- | ---------------------------------------------------- |
+| `-o, --out <path>`    | Where to write the HTML (a directory with `--split`) |
+| `--split`             | One document per subfolder - e.g. one PDF per week   |
+| `--pdf`               | Also write a PDF using your installed Chrome         |
+| `--no-open`           | Don't launch the browser                             |
+| `--no-run`            | Render the source only, execute nothing              |
+| `--no-footer`         | Drop the labpress credit line                        |
+| `--theme <name>`      | Any theme Shiki ships                                |
+| `--transcript <mode>` | `interleaved` or `split`                             |
+| `--title <text>`      | Document title                                       |
+| `--only <glob>`       | Limit to matching files, repeatable                  |
+| `--timeout <ms>`      | Per-run time limit                                   |
+| `-c, --config <path>` | Use a specific config file                           |
+| `--keep`              | Keep the temporary build directory                   |
+| `--json`              | Machine-readable output on stdout                    |
+| `-q, --quiet`         | Only report problems                                 |
 
 Logs go to stderr and JSON to stdout, so `--json` stays parseable. Exit codes:
 `0` fine, `2` bad usage, `3` bad config, `4` nothing found, `5` a program failed
 to compile or run, `6` PDF generation failed.
+
+### One document per week
+
+Colleges often want each week submitted separately. `--split` emits one
+document per immediate subfolder instead of a single combined record:
+
+```bash
+npx labpress ./labs --split --pdf -o ./records
+```
+
+```
+records/Week-01.pdf    Bit Stuffing, Byte Stuffing
+records/Week-03.pdf    Parity Check, CRC, Hamming Code
+records/Week-04.pdf    Stop and Wait, Go-Back-N, Selective Repeat
+```
+
+Each one gets its own cover page naming the week, its own contents list, and
+program numbering that restarts at 1. Empty folders are skipped. With `--split`,
+`--out` is the directory the documents go into rather than a file path. Set
+`"split": true` in the config to make it the default.
 
 ### PDF
 

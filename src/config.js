@@ -17,6 +17,8 @@ export const DEFAULT_CONFIG = {
     theme: "github-light",
     transcript: "interleaved",
     footer: true,
+    // true emits one document per immediate subdirectory (one per week).
+    split: false,
     include: ["**/*.{c,cc,cxx,cpp,py,java}"],
     exclude: [],
     order: [],

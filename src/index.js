@@ -133,7 +133,7 @@ export async function build({
 
     if (resolved.length === 0) {
         return {
-            html: null,
+            documents: [],
             programs: [],
             config,
             root,
@@ -169,29 +169,63 @@ export async function build({
         config.theme,
     );
 
-    let html;
+    const generatedAt = new Date().toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
+
+    const documents = [];
     try {
-        html = await renderDocument({
-            programs: built,
-            config,
-            highlighter,
-            generatedAt: new Date().toLocaleDateString(undefined, {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-            }),
-        });
+        for (const group of partition(built, config.split, root)) {
+            documents.push({
+                group: group.key,
+                name: group.name,
+                programs: group.programs,
+                html: await renderDocument({
+                    programs: group.programs,
+                    config,
+                    highlighter,
+                    generatedAt,
+                    group: group.key,
+                }),
+            });
+        }
     } finally {
         highlighter.dispose();
     }
 
     return {
-        html,
+        documents,
         programs: built,
         config,
         root,
         configPath: loaded.configPath,
     };
+}
+
+/**
+ * Split programs into one document per immediate subdirectory, which for a
+ * folder laid out as Week-01/, Week-02/ ... means one document per week.
+ * Programs sitting directly in the root are grouped under the root's name.
+ */
+export function partition(programs, split, root) {
+    if (!split) return [{ key: null, name: "index", programs }];
+
+    const groups = new Map();
+    for (const program of programs) {
+        const segments = program.path.split("/");
+        const key = segments.length > 1 ? segments[0] : path.basename(root);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(program);
+    }
+
+    // Map preserves insertion order, so groups follow the configured order.
+    return [...groups.entries()].map(([key, grouped]) => ({
+        key,
+        name: key.replace(/[^\w.-]+/g, "-"),
+        programs: grouped,
+    }));
 }
 
 export { LANGUAGES };

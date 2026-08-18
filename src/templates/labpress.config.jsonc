@@ -33,6 +33,10 @@
     // false removes the labpress credit line; a string replaces it.
     "footer": true,
 
+    // true emits one document per subfolder (one per week) instead of a
+    // single combined record. Same as passing --split.
+    "split": false,
+
     // Which files become programs.
     "include": ["**/*.{c,cc,cxx,cpp,py,java}"],
     "exclude": ["**/scratch/**"],

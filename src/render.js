@@ -36,7 +36,12 @@ const COVER_FIELDS = [
     ["university", "University"],
 ];
 
-function renderCover(config, generatedAt) {
+/** `Week-01` reads better as `Week 01` on a cover page. */
+export function humaniseGroup(group) {
+    return group.replace(/[_-]+/g, " ").trim();
+}
+
+function renderCover(config, generatedAt, group) {
     if (config.cover === false) return "";
     const student = config.student ?? {};
     const rows = COVER_FIELDS.filter(([key]) => present(student[key]))
@@ -52,6 +57,7 @@ function renderCover(config, generatedAt) {
     return `<section class="cover">
         ${subject ? `<div class="cover-subject">${escapeHtml(subject)}</div>` : ""}
         <h1>${escapeHtml(title)}</h1>
+        ${group ? `<div class="cover-group">${escapeHtml(humaniseGroup(group))}</div>` : ""}
         <div class="cover-rule"></div>
         ${rows ? `<dl class="cover-details">\n            ${rows}\n        </dl>` : ""}
         <div class="cover-subject" style="margin-top:22px">${escapeHtml(generatedAt)}</div>
@@ -201,6 +207,7 @@ export async function renderDocument({
     config,
     highlighter,
     generatedAt,
+    group = null,
 }) {
     const [css, viewerJs] = await Promise.all([
         readFile(path.join(ASSETS, "print.css"), "utf8"),
@@ -217,7 +224,8 @@ export async function renderDocument({
         )
         .join("\n    ");
 
-    const title = config.title ?? "Lab Record";
+    const baseTitle = config.title ?? "Lab Record";
+    const title = group ? `${baseTitle} - ${humaniseGroup(group)}` : baseTitle;
 
     return `<!doctype html>
 <html lang="en">
@@ -248,7 +256,7 @@ ${css}
     </button>
 </div>
 <main class="doc">
-    ${renderCover(config, generatedAt)}
+    ${renderCover(config, generatedAt, group)}
     ${renderToc(programs, config)}
     ${body}
 </main>
