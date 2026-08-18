@@ -17,6 +17,14 @@
         "name": "Varun Agnihotri",
         "email": "code@pythonicvarun.me"
     },
+    "homepage": "https://github.com/PythonicVarun/labpress#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/PythonicVarun/labpress.git"
+    },
+    "bugs": {
+        "url": "https://github.com/PythonicVarun/labpress/issues"
+    },
     "type": "module",
     "bin": {
         "labpress": "src/cli.js"
