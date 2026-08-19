@@ -21,6 +21,14 @@ printed, and opens a finished document in your browser. Ctrl+P and submit.
 
 No install, no screenshots, no pasting code into Word every week.
 
+<p align="center">
+  <img src="docs/preview.png" alt="Two pages of a generated record: a cover page, and a program page showing highlighted C source above its captured terminal session" width="100%">
+</p>
+
+<p align="center">
+  <sub>Built from <a href="examples/">examples/</a> - run <code>npx labpress ./examples</code> to make it yourself.</sub>
+</p>
+
 ---
 
 ## Contents
