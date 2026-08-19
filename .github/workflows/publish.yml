@@ -21,8 +21,10 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  node-version: 24
                   registry-url: https://registry.npmjs.org
+
+            - run: npm install -g npm@latest
 
             - run: npm install --no-audit --no-fund
 
@@ -48,10 +50,25 @@ jobs:
                   ./node_modules/.bin/labpress . --no-open --out record.html
                   grep -q "hi from labpress" record.html
 
-            - name: Publish to npm
-              run: npm publish --provenance --access public --tag "${{ inputs.dist-tag || 'latest' }}"
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            # Staged, not published
+            - name: Stage the release on npm
+              run: npm stage publish --provenance --access public --tag "${{ inputs.dist-tag || 'latest' }}"
+
+            - name: Say how to approve it
+              run: |
+                  {
+                      echo "### Staged, waiting for approval"
+                      echo
+                      echo "Nothing is installable yet. To finish the release:"
+                      echo
+                      echo '```bash'
+                      echo "npm stage list labpress          # find the stage id"
+                      echo "npm stage download <stage-id>    # check the tarball"
+                      echo "npm stage approve <stage-id>     # publish it"
+                      echo '```'
+                      echo
+                      echo "Changed your mind? \`npm stage reject <stage-id>\`."
+                  } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Create the GitHub release
               if: startsWith(github.ref, 'refs/tags/')

@@ -57,8 +57,9 @@ something is the way it is, not restate the line below.
 
 ## Releasing
 
-Maintainers only. Publishing needs an npm automation token stored as the
-`NPM_TOKEN` repository secret. Then:
+Maintainers only. There's no npm token anywhere - the package is registered as a
+trusted publisher on npmjs, so the workflow trades GitHub's OIDC token for a
+short-lived credential. To cut a release:
 
 ```bash
 npm version patch
@@ -67,6 +68,16 @@ git push --follow-tags
 
 The tag triggers `.github/workflows/publish.yml`, which checks the tag matches
 `package.json`, installs the packed tarball and runs the binary out of it as a
-smoke test, publishes with provenance, and cuts a GitHub release. The workflow's
-manual trigger takes a dist-tag, for pushing a `beta` or `next` without moving
+smoke test, then **stages** the release and cuts a GitHub release. The workflow's
+manual trigger takes a dist-tag, for staging a `beta` or `next` without moving
 `latest`.
+
+Staged means it's on the registry but nobody can install it. A maintainer
+finishes the release by hand, which is where the 2FA prompt lives:
+
+```bash
+npm stage list labpress          # find the stage id
+npm stage download <stage-id>    # check the tarball
+npm stage approve <stage-id>     # publish it
+npm stage reject <stage-id>      # or throw it away
+```
