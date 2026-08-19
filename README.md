@@ -17,7 +17,7 @@ npx labpress ./labs
 
 That's the whole thing. It finds every program in the folder, compiles them,
 runs them against the inputs you give it, captures what the terminal actually
-printed, and opens a finished document in your browser. Ctrl+P and submit.
+printed, and hands you a finished PDF. Submit that.
 
 No install, no screenshots, no pasting code into Word every week.
 
@@ -140,8 +140,9 @@ on each: macOS needs GNU coreutils for `stdbuf` if you write plain C (see
 npx labpress ./labs
 ```
 
-Every `.c`, `.cpp`, `.py` and `.java` file gets compiled, run and rendered, and
-the document opens in your browser.
+Every `.c`, `.cpp`, `.py` and `.java` file gets compiled, run and rendered into
+a PDF, which then opens. Want the HTML instead - to tweak it, or to print it
+yourself - add `--to html`, or `--to both` for the pair.
 
 **2. Give the programs their input.** Drop a file named after the source next to
 it and labpress feeds it in, one line at a time, as the program asks:
@@ -163,16 +164,16 @@ npx labpress init ./labs
 That writes `labpress.config.jsonc` listing every program it found, with every
 option documented in comments. Fill in the blanks and run it again.
 
-**4. Get the PDF.** Print from the browser, or let labpress drive Chrome:
+**4. Say where it goes.**
 
 ```bash
-npx labpress ./labs --pdf -o record.pdf
+npx labpress ./labs -o record.pdf
 ```
 
 **5. One file per week**, if that's how your college wants it submitted:
 
 ```bash
-npx labpress ./labs --split --pdf -o ./records
+npx labpress ./labs --split -o ./records
 ```
 
 ```
@@ -302,7 +303,7 @@ paths containing spaces work without any quoting on your part.
 ## Command line
 
 ```
-labpress [directory]        build, then open it in your browser
+labpress [directory]        build a PDF, then open it
 labpress init [directory]   write a starter config file
 labpress list [directory]   show what would be included
 labpress themes             list available syntax themes
@@ -311,9 +312,9 @@ labpress themes             list available syntax themes
 | Flag                  | Effect                                             |
 | --------------------- | -------------------------------------------------- |
 | `-o, --out <path>`    | Where to write it (a directory with `--split`)     |
+| `--to <format>`       | `pdf` (default), `html`, or `both`                 |
 | `--split`             | One document per subfolder - e.g. one PDF per week |
-| `--pdf`               | Also write a PDF using your installed Chrome       |
-| `--no-open`           | Don't launch the browser                           |
+| `--no-open`           | Don't open the finished file                       |
 | `--no-run`            | Render the source only, execute nothing            |
 | `--no-footer`         | Drop the labpress credit line                      |
 | `--theme <name>`      | Any theme Shiki ships                              |
@@ -327,8 +328,9 @@ labpress themes             list available syntax themes
 | `--json`              | Machine-readable output on stdout                  |
 | `-q, --quiet`         | Only report problems                               |
 
-Give `--out` a `.pdf` name and the PDF lands exactly there, with the HTML beside
-it. With `--split`, `--out` is the directory the documents go into.
+`--out` names the file - the extension doesn't matter, `--to` decides what gets
+written. With `--split` it's the directory the documents go into instead. The
+PDF needs your installed Chrome; nothing is downloaded.
 
 Logs go to stderr and JSON to stdout, so `--json` stays parseable. Exit codes:
 `0` fine, `2` bad usage, `3` bad config, `4` nothing found, `5` a program failed
@@ -389,9 +391,9 @@ the target:
 }
 ```
 
-**`--pdf` says it can't find Chrome.** It uses the Chrome, Chromium, Brave or
+**It can't find Chrome for the PDF.** It uses the Chrome, Chromium, Brave or
 Edge you already have and downloads nothing. Set `CHROME_PATH` if yours lives
-somewhere unusual, or just open the HTML and print from the browser.
+somewhere unusual, or use `--to html` and print from the browser.
 
 **A run shows Input and Output as separate blocks.** That's the degraded mode
 described above - usually plain C without `stdbuf`. Install GNU coreutils, or

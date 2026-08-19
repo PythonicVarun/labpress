@@ -31,6 +31,8 @@ const OPTIONS = {
     date: { type: "string" },
     only: { type: "string", multiple: true },
     timeout: { type: "string" },
+    to: { type: "string" },
+    // What 1.0 called it, back when HTML was the default. Still parses.
     pdf: { type: "boolean" },
     split: { type: "boolean" },
     "no-open": { type: "boolean" },
@@ -47,16 +49,16 @@ const OPTIONS = {
 const HELP = `labpress - turn a folder of lab programs into a print-ready record
 
 Usage
-  npx labpress [directory] [options]        build, then open it in your browser
+  npx labpress [directory] [options]        build a PDF, then open it
   npx labpress init [directory]             write a starter config file
   npx labpress list [directory]             show what would be included
   npx labpress themes                       list available syntax themes
 
 Options
-  -o, --out <path>        where to write the HTML (a directory when --split)
+  -o, --out <path>        where to write it (a directory when --split)
+      --to <format>       "pdf" (default), "html", or "both"
       --split             one document per subfolder, e.g. one PDF per week
-      --pdf               also write a PDF, using your installed Chrome
-      --no-open           don't launch the browser
+      --no-open           don't open the finished file
       --no-run            just render the source, don't execute anything
       --no-footer         drop the labpress credit line
       --theme <name>      syntax theme (default: github-light)
@@ -75,8 +77,8 @@ Options
 
 Examples
   npx labpress ./labs
-  npx labpress ./labs --pdf --no-footer
-  npx labpress ./labs --split --pdf -o ./records
+  npx labpress ./labs --to html --no-footer
+  npx labpress ./labs --split -o ./records
   npx labpress ./labs --only "Week-03/**"
   npx labpress init ./labs
 `;
@@ -146,7 +148,15 @@ function overridesFrom(values) {
     return overrides;
 }
 
+function formatsFrom(values) {
+    const to = values.to ?? "pdf";
+    return new Set(to === "both" ? ["html", "pdf"] : [to]);
+}
+
 function validate(values) {
+    if (values.to && !["html", "pdf", "both"].includes(values.to)) {
+        return `--to must be "html", "pdf" or "both", got "${values.to}"`;
+    }
     if (
         values.transcript &&
         !["interleaved", "split"].includes(values.transcript)
@@ -248,21 +258,25 @@ async function runBuild(target, values, log) {
         return { code: EXIT.nothingFound };
     }
 
-    const outputs = await writeDocuments(result.documents, values);
+    const formats = formatsFrom(values);
+    const outputs = await writeDocuments(result.documents, values, formats);
     const problems = collectProblems(result.programs);
     let pdfError = null;
 
-    if (values.pdf) {
+    if (formats.has("pdf")) {
         const chrome = findChrome();
         if (!chrome) {
             pdfError =
-                "No Chrome/Chromium/Edge found for --pdf. Set CHROME_PATH, or open the HTML and print from there.";
+                "No Chrome/Chromium/Edge found to make the PDF. Set CHROME_PATH, or use --to html and print from the browser.";
         } else {
             for (const output of outputs) {
-                const target = `${output.html.replace(/\.html?$/i, "")}.pdf`;
-                const outcome = await printToPdf(chrome, output.html, target);
+                const outcome = await printToPdf(
+                    chrome,
+                    output.html,
+                    output.pdfPath,
+                );
                 if (outcome.ok) {
-                    output.pdf = target;
+                    output.pdf = output.pdfPath;
                 } else {
                     pdfError = `PDF generation failed: ${outcome.message}`;
                 }
@@ -310,6 +324,9 @@ async function runBuild(target, values, log) {
 
     if (pdfError) {
         log.warn(`  ! ${pdfError}`);
+        for (const output of outputs) {
+            log.warn(`    the HTML is at ${output.html}`);
+        }
         return { code: EXIT.pdfFailed };
     }
 
@@ -332,35 +349,37 @@ async function runBuild(target, values, log) {
  * Write each rendered document to disk. With one document --out is the file
  * itself; with several it's the directory they go into.
  */
-async function writeDocuments(documents, values) {
+async function writeDocuments(documents, values, formats) {
     const single = documents.length === 1 && documents[0].group === null;
+    const named = single && values.out ? path.resolve(values.out) : null;
 
-    const directory = values.out
-        ? single
-            ? path.dirname(path.resolve(values.out))
-            : path.resolve(values.out)
-        : await mkdtemp(path.join(tmpdir(), "labpress-"));
-
+    const directory = named
+        ? path.dirname(named)
+        : values.out
+          ? path.resolve(values.out)
+          : await mkdtemp(path.join(tmpdir(), "labpress-"));
     await mkdir(directory, { recursive: true });
+
+    const htmlDirectory = formats.has("html")
+        ? directory
+        : await mkdtemp(path.join(tmpdir(), "labpress-"));
 
     const outputs = [];
     for (const document of documents) {
-        const file =
-            single && values.out
-                ? htmlPathFor(values.out)
-                : path.join(directory, `${document.name}.html`);
-        await writeFile(file, document.html, "utf8");
-        outputs.push({ group: document.group, html: file, pdf: null });
+        // -o record.pdf and -o record.html both mean "call it record".
+        const stem = named
+            ? path.basename(named).replace(/\.(html?|pdf)$/i, "")
+            : document.name;
+        const html = path.join(htmlDirectory, `${stem}.html`);
+        await writeFile(html, document.html, "utf8");
+        outputs.push({
+            group: document.group,
+            html,
+            pdfPath: path.join(directory, `${stem}.pdf`),
+            pdf: null,
+        });
     }
     return outputs;
-}
-
-/**
- * `-o record.pdf` reads as "put the PDF there", not "name the HTML record.pdf",
- * so swap the extension - otherwise --pdf would write record.pdf.pdf beside it.
- */
-function htmlPathFor(out) {
-    return path.resolve(out).replace(/\.pdf$/i, ".html");
 }
 
 /** Surface anything a student would want to fix before submitting. */
