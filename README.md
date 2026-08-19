@@ -213,6 +213,16 @@ is optional; it only exists to override what labpress guessed.
     "cover": true,
     "toc": true,
     "split": false, // true for one document per subfolder
+
+    // Cover date. Leave it out for today, write your own, or false for none.
+    "date": "12 August 2026",
+    // With "split", each week can have its own. Keys are the folder names,
+    // anything not listed falls back to "date" above.
+    "dates": {
+        "Week-01": "5 August 2026",
+        "Week-02": "12 August 2026",
+    },
+
     "theme": "github-light",
     "transcript": "interleaved", // or "split"
     "footer": true, // false to remove, or a string to replace
@@ -309,6 +319,7 @@ labpress themes             list available syntax themes
 | `--theme <name>`      | Any theme Shiki ships                              |
 | `--transcript <mode>` | `interleaved` or `split`                           |
 | `--title <text>`      | Document title                                     |
+| `--date <text>`       | Cover date - `none` leaves it off                  |
 | `--only <glob>`       | Limit to matching files, repeatable                |
 | `--timeout <ms>`      | Per-run time limit                                 |
 | `-c, --config <path>` | Use a specific config file                         |

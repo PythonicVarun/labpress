@@ -28,6 +28,7 @@ const OPTIONS = {
     theme: { type: "string" },
     transcript: { type: "string" },
     title: { type: "string" },
+    date: { type: "string" },
     only: { type: "string", multiple: true },
     timeout: { type: "string" },
     pdf: { type: "boolean" },
@@ -61,6 +62,7 @@ Options
       --theme <name>      syntax theme (default: github-light)
       --transcript <mode> "interleaved" or "split"
       --title <text>      document title
+      --date <text>       cover date (default: today, "none" to omit)
       --only <glob>       limit to matching files (repeatable)
       --timeout <ms>      per-run time limit
   -c, --config <path>     use a specific config file
@@ -131,6 +133,11 @@ function overridesFrom(values) {
     if (values.theme) overrides.theme = values.theme;
     if (values.transcript) overrides.transcript = values.transcript;
     if (values.title) overrides.title = values.title;
+    // "none" is the only way to say "no date at all" from the shell
+    if (values.date) {
+        overrides.date = values.date === "none" ? false : values.date;
+        overrides.dates = null;
+    }
     if (values["no-footer"]) overrides.footer = false;
     if (values.split) overrides.split = true;
     if (values.timeout) {

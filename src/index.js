@@ -3,7 +3,12 @@ import { tmpdir, platform } from "node:os";
 import path from "node:path";
 import { LANGUAGES, buildCommand } from "./languages.js";
 import { discoverPrograms, applyOrder, resolveRoot } from "./discover.js";
-import { loadConfig, resolveProgram, mergeConfig } from "./config.js";
+import {
+    loadConfig,
+    resolveProgram,
+    mergeConfig,
+    resolveDate,
+} from "./config.js";
 import { compile, execute, applyUnbuffer } from "./runner.js";
 import { buildTranscript } from "./transcript.js";
 import { createCodeHighlighter } from "./highlight.js";
@@ -169,7 +174,7 @@ export async function build({
         config.theme,
     );
 
-    const generatedAt = new Date().toLocaleDateString(undefined, {
+    const today = new Date().toLocaleDateString(undefined, {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -186,7 +191,7 @@ export async function build({
                     programs: group.programs,
                     config,
                     highlighter,
-                    generatedAt,
+                    generatedAt: resolveDate(config, group.key, today),
                     group: group.key,
                 }),
             });

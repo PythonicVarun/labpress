@@ -17,6 +17,10 @@ export const DEFAULT_CONFIG = {
     theme: "github-light",
     transcript: "interleaved",
     footer: true,
+    // null means "today"; a string sets it, false leaves it off.
+    date: null,
+    // Per-group dates for --split, keyed by folder name.
+    dates: {},
     // true emits one document per immediate subdirectory (one per week).
     split: false,
     include: ["**/*.{c,cc,cxx,cpp,py,java}"],
@@ -242,4 +246,16 @@ export async function resolveProgram(program, config, root) {
         transcript: entry.transcript ?? config.transcript,
         runs: runs.filter((run) => !run.hide),
     };
+}
+
+/**
+ * Which date the cover shows. A "dates" entry for the current week beats the
+ * top-level "date", and false at either level prints no date at all.
+ */
+export function resolveDate(config, group, fallback) {
+    const value = (group ? config.dates?.[group] : undefined) ?? config.date;
+    if (value === false) return null;
+    return value === null || value === undefined || value === ""
+        ? fallback
+        : String(value);
 }

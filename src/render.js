@@ -60,7 +60,7 @@ function renderCover(config, generatedAt, group) {
         ${group ? `<div class="cover-group">${escapeHtml(humaniseGroup(group))}</div>` : ""}
         <div class="cover-rule"></div>
         ${rows ? `<dl class="cover-details">\n            ${rows}\n        </dl>` : ""}
-        <div class="cover-subject" style="margin-top:22px">${escapeHtml(generatedAt)}</div>
+        ${generatedAt ? `<div class="cover-subject" style="margin-top:22px">${escapeHtml(generatedAt)}</div>` : ""}
     </section>`;
 }
 

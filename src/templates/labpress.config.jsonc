@@ -21,6 +21,17 @@
     "cover": true,
     "toc": true,
 
+    // Cover date. Leave it out for today's date, write your own
+    // ("12 August 2026", "Week of 12/08/26", anything), or false for none.
+    // "date": "12 August 2026",
+
+    // With "split", each week can carry its own date. Keys are the
+    // folder names; weeks not listed fall back to "date" above.
+    "dates": {
+        // "Week-01": "5 August 2026",
+        // "Week-02": "12 August 2026"
+    },
+
     // Any theme Shiki ships, e.g. github-light, one-light, min-light,
     // catppuccin-latte, vitesse-light. A matching dark theme is picked
     // automatically for on-screen reading; printing is always light.
