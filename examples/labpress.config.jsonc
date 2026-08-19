@@ -1,0 +1,41 @@
+{
+    "title": "Data Structures - Lab Record",
+    "student": {
+        "name": "Varun Agnihotri",
+        "roll": "21CS1234",
+        "course": "B.Tech Computer Science",
+        "section": "A",
+        "semester": "3rd",
+        "subject": "Data Structures",
+        "university": "Example Institute of Technology",
+    },
+    "programs": {
+        "Week-01/binary_search.cpp": {
+            "title": "Binary Search",
+            "aim": "To search a sorted array using binary search and report the index.",
+            "runs": [
+                {
+                    "label": "Key present",
+                    "stdin": ["7", "3 8 12 19 24 31 47", "24"],
+                },
+                { "label": "Key absent", "stdin": ["5", "2 4 6 8 10", "7"] },
+            ],
+        },
+        "Week-01/word_frequency.py": {
+            "title": "Word Frequency",
+            "aim": "To count how often each word appears in a line of text.",
+            "runs": [
+                {
+                    "stdin": [
+                        "the quick brown fox jumps over the lazy dog the fox",
+                    ],
+                },
+            ],
+        },
+        "Week-02/matrix_transpose.c": {
+            "title": "Matrix Transpose",
+            "aim": "To read a matrix and print its transpose.",
+            "runs": [{ "stdin": ["2 3", "1 2 3", "4 5 6"] }],
+        },
+    },
+}

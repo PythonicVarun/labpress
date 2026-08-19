@@ -8,8 +8,12 @@ Thanks for taking a look. Bug reports, ideas and pull requests are all welcome.
 git clone https://github.com/PythonicVarun/labpress.git
 cd labpress
 npm install
-node src/cli.js ./some-folder-of-programs --no-open -o /tmp/record.html
+node src/cli.js ./examples --no-open -o /tmp/record.html
 ```
+
+`examples/` holds three small programs and a config that exercises interactive
+input in C, C++ and Python - it's what the screenshot in the README is built
+from, so it's the quickest way to see a change end to end.
 
 There's no build step - the package ships the source in `src/` and runs on Node
 20+. `--no-open` keeps it from launching a browser on every iteration, and
