@@ -29,13 +29,56 @@ function renderLink(label, href) {
     return resolved ? `<a href="${resolved}">${label}</a>` : label;
 }
 
-/** Bold, italic, code, links, images - applied to one already-escaped line. */
+// Jupyter renders raw HTML in a markdown cell.
+const PLAIN_TAGS =
+    /^<(\/?)(br|b|strong|i|em|u|s|del|sub|sup|mark|small|kbd|center)\s*\/?>$/i;
+const BOX_TAG = /^<(\/?)(div|span|p)(\s+align="(left|right|center)")?\s*>$/i;
+const IMG_TAG = /^<img\s[^>]*>$/i;
+
+function attributeOf(tag, name) {
+    return new RegExp(`${name}\\s*=\\s*"([^"]*)"`, "i").exec(tag)?.[1] ?? "";
+}
+
+/** Turn one raw tag into the tag we are willing to emit, or null. */
+function allowTag(tag, attachments) {
+    const plain = PLAIN_TAGS.exec(tag);
+    if (plain) return `<${plain[1]}${plain[2].toLowerCase()}>`;
+
+    const box = BOX_TAG.exec(tag);
+    if (box) {
+        const align = box[4] ? ` style="text-align:${box[4]}"` : "";
+        return box[1]
+            ? `</${box[2].toLowerCase()}>`
+            : `<${box[2].toLowerCase()}${align}>`;
+    }
+
+    if (IMG_TAG.test(tag)) {
+        // Both paths hand renderImage already-escaped values.
+        return renderImage(
+            escapeHtml(attributeOf(tag, "alt")),
+            escapeHtml(attributeOf(tag, "src")),
+            attachments,
+        );
+    }
+    return null;
+}
+
+/** Bold, italic, code, links, images - applied to one line of text. */
 function inline(text, attachments) {
     const codes = [];
-    let html = escapeHtml(text).replace(/`([^`]+)`/g, (match, code) => {
-        codes.push(code);
+    let html = String(text).replace(/`([^`]+)`/g, (match, code) => {
+        codes.push(`<code>${escapeHtml(code)}</code>`);
         return `${SLOT}${codes.length - 1}${SLOT}`;
     });
+
+    html = html.replace(/<[^<>]+>/g, (tag) => {
+        const allowed = allowTag(tag, attachments);
+        if (allowed === null) return tag;
+        codes.push(allowed);
+        return `${SLOT}${codes.length - 1}${SLOT}`;
+    });
+
+    html = escapeHtml(html);
 
     html = html
         .replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (match, alt, src) =>
@@ -53,14 +96,14 @@ function inline(text, attachments) {
 
     return html.replace(
         new RegExp(`${SLOT}(\\d+)${SLOT}`, "g"),
-        (match, index) => `<code>${codes[Number(index)]}</code>`,
+        (match, index) => codes[Number(index)],
     );
 }
 
 const FENCE = /^\s*(```+|~~~+)/;
 const HEADING = /^(#{1,6})\s+(.*)$/;
 const RULE = /^\s*(?:[-*_]\s*){3,}$/;
-const BULLET = /^\s*([-*+]|\d+[.)])\s+(.*)$/;
+const BULLET = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const QUOTE = /^\s*>\s?(.*)$/;
 
 /** True when a line opens a new block, so a paragraph has to stop here. */
@@ -103,6 +146,50 @@ function renderCells(cells, alignments, tag, attachments) {
             return `<${tag}${align}>${inline(cell, attachments)}</${tag}>`;
         })
         .join("");
+}
+
+/**
+ * One list and everything nested inside it. Indentation decides the depth,
+ * the way it does in the editor people typed the cell in.
+ */
+function collectList(lines, start, attachments) {
+    const first = BULLET.exec(lines[start]);
+    const baseIndent = first[1].length;
+    const tag = /\d/.test(first[2]) ? "ol" : "ul";
+    const items = [];
+    let index = start;
+
+    while (index < lines.length) {
+        const bullet = BULLET.exec(lines[index]);
+        if (!bullet || bullet[1].length < baseIndent) break;
+
+        if (bullet[1].length > baseIndent) {
+            const nested = collectList(lines, index, attachments);
+            if (items.length) items.at(-1).children += nested.html;
+            index = nested.next;
+            continue;
+        }
+
+        items.push({ text: bullet[3], children: "" });
+        index++;
+
+        // A wrapped line belongs to the item above it.
+        while (
+            index < lines.length &&
+            lines[index].trim() &&
+            !startsBlock(lines[index])
+        ) {
+            items.at(-1).text += ` ${lines[index++].trim()}`;
+        }
+    }
+
+    const body = items
+        .map(
+            (item) =>
+                `<li>${inline(item.text, attachments)}${item.children}</li>`,
+        )
+        .join("");
+    return { html: `<${tag}>${body}</${tag}>`, next: index };
 }
 
 /** Render one Markdown string to HTML. */
@@ -186,25 +273,10 @@ export function renderMarkdown(text, { attachments = {} } = {}) {
             continue;
         }
 
-        const bullet = BULLET.exec(line);
-        if (bullet) {
-            const ordered = /\d/.test(bullet[1]);
-            const items = [];
-            while (index < lines.length && BULLET.test(lines[index])) {
-                items.push(BULLET.exec(lines[index++])[2]);
-                while (
-                    index < lines.length &&
-                    lines[index].trim() &&
-                    !startsBlock(lines[index])
-                ) {
-                    items[items.length - 1] += ` ${lines[index++].trim()}`;
-                }
-            }
-            const tag = ordered ? "ol" : "ul";
-            const rendered = items
-                .map((item) => `<li>${inline(item, attachments)}</li>`)
-                .join("");
-            blocks.push(`<${tag}>${rendered}</${tag}>`);
+        if (BULLET.test(line)) {
+            const list = collectList(lines, index, attachments);
+            blocks.push(list.html);
+            index = list.next;
             continue;
         }
 
@@ -216,7 +288,13 @@ export function renderMarkdown(text, { attachments = {} } = {}) {
         ) {
             paragraph.push(lines[index++]);
         }
-        blocks.push(`<p>${inline(paragraph.join("\n"), attachments)}</p>`);
+
+        // A cell that opens with a raw block tag shouldn't be wrapped in a
+        // paragraph.
+        const html = inline(paragraph.join("\n"), attachments);
+        blocks.push(
+            /^<(div|center|p)[\s>]/i.test(html) ? html : `<p>${html}</p>`,
+        );
     }
 
     return blocks.join("\n");
