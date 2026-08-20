@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverPrograms } from "./discover.js";
 import { DEFAULT_CONFIG } from "./config.js";
+import { isNotebook } from "./languages.js";
 
 const TEMPLATE = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
@@ -44,6 +45,14 @@ function annotatedEntry(program) {
 }
 
 function plainEntry(program) {
+    // A notebook has nothing to feed, and its own first heading titles it,
+    // so writing a title here would only override something better.
+    if (isNotebook(program.language)) {
+        return `"${program.path}": {
+            "aim": ""
+        }`;
+    }
+
     return `"${program.path}": {
             "title": ${JSON.stringify(program.title)},
             "aim": "",
@@ -67,13 +76,17 @@ export async function initConfig(root, { force = false, title = null } = {}) {
         include: DEFAULT_CONFIG.include,
     });
 
+    // The run options are worth spelling out once, on a program that has runs.
+    const annotated = programs.findIndex(
+        (program) => !isNotebook(program.language),
+    );
     const entries = programs.map((program, index) =>
-        index === 0 ? annotatedEntry(program) : plainEntry(program),
+        index === annotated ? annotatedEntry(program) : plainEntry(program),
     );
 
     const body = entries.length
         ? entries.join(",\n        ")
-        : `// No programs found yet. Add some .c / .cpp / .py / .java files
+        : `// No programs found yet. Add some .c / .cpp / .py / .java / .ipynb files
         // and run: npx labpress init . --force`;
 
     const template = await readFile(TEMPLATE, "utf8");

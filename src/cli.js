@@ -11,6 +11,7 @@ import { loadConfig, resolveProgram, mergeConfig } from "./config.js";
 import { openInBrowser } from "./open.js";
 import { findChrome, printToPdf } from "./pdf.js";
 import { isKnownTheme, availableThemes } from "./highlight.js";
+import { isNotebook } from "./languages.js";
 
 export const EXIT = {
     ok: 0,
@@ -217,6 +218,13 @@ async function runList(target, values, log) {
     }
 
     for (const program of resolved) {
+        // "0 run(s)" would be a strange way to describe a notebook.
+        if (isNotebook(program.language)) {
+            process.stderr.write(
+                `${program.path}  (notebook)  cells and outputs read from the file\n`,
+            );
+            continue;
+        }
         const runs = program.runs
             .map((run, index) => run.label ?? `run ${index + 1}`)
             .join(", ");
@@ -255,7 +263,7 @@ async function runBuild(target, values, log) {
     if (result.documents.length === 0) {
         log.warn(
             `No programs found under ${result.root}. ` +
-                `Check the include patterns, or that the files are .c/.cpp/.py/.java.`,
+                `Check the include patterns, or that the files are .c/.cpp/.py/.java/.ipynb.`,
         );
         return { code: EXIT.nothingFound };
     }
@@ -389,7 +397,10 @@ function collectProblems(programs) {
     const problems = [];
     for (const program of programs) {
         if (program.compileError) {
-            problems.push(`${program.path}: failed to compile`);
+            const what = isNotebook(program.language)
+                ? "could not be read"
+                : "failed to compile";
+            problems.push(`${program.path}: ${what}`);
         }
         // A notebook with no stored outputs prints as source only
         if (program.notebook?.hasCode && !program.notebook.hasOutputs) {
