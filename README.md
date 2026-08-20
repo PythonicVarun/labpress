@@ -17,7 +17,8 @@ npx labpress ./labs
 
 That's the whole thing. It finds every program in the folder, compiles them,
 runs them against the inputs you give it, captures what the terminal actually
-printed, and hands you a finished PDF. Submit that.
+printed, and hands you a finished PDF. Submit that. Jupyter notebooks come
+along too, cells and saved outputs and all.
 
 No install, no screenshots, no pasting code into Word every week.
 
@@ -37,6 +38,7 @@ No install, no screenshots, no pasting code into Word every week.
 - [Install](#install)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Notebooks](#notebooks)
 - [Command line](#command-line)
 - [Language defaults](#language-defaults)
 - [How it works](#how-it-works)
@@ -70,12 +72,16 @@ terminal glued underneath. labpress produces the real thing:
     Typed values get a highlight box, so an examiner can tell input from output
     at a glance and it survives a black-and-white printer.
 
+- **Notebooks, without the nbconvert look.** A `.ipynb` already stores what
+  every cell printed, so labpress reuses that instead of re-running anything.
+  Each code cell becomes one block with its output attached underneath, prose
+  cells read as prose, and plots come through as images.
 - **A cover page** with your name, roll number, subject and the rest, a linked
   contents list, and page breaks that land between programs instead of through
   the middle of one.
 - **A PDF**, if you want it, printed by the Chrome you already have.
 
-Works with **C, C++, Python and Java**.
+Works with **C, C++, Python, Java and Jupyter notebooks**.
 
 ---
 
@@ -124,7 +130,8 @@ required.
 
 Node 20 or newer, plus whatever compiler each language needs - `gcc`, `g++`,
 `python3`, `javac`/`java`. Only the languages you actually use have to be
-installed; labpress never touches the others.
+installed; labpress never touches the others. Notebooks need nothing at all -
+they're read, not run, so no Python and no Jupyter.
 
 Developed and tested on Linux. macOS and Windows are supported, with one caveat
 on each: macOS needs GNU coreutils for `stdbuf` if you write plain C (see
@@ -140,7 +147,7 @@ on each: macOS needs GNU coreutils for `stdbuf` if you write plain C (see
 npx labpress ./labs
 ```
 
-Every `.c`, `.cpp`, `.py` and `.java` file gets compiled, run and rendered into
+Every `.c`, `.cpp`, `.py`, `.java` and `.ipynb` file gets compiled, run and rendered into
 a PDF, which then opens. Want the HTML instead - to tweak it, or to print it
 yourself - add `--to html`, or `--to both` for the pair.
 
@@ -228,7 +235,7 @@ is optional; it only exists to override what labpress guessed.
     "transcript": "interleaved", // or "split"
     "footer": true, // false to remove, or a string to replace
 
-    "include": ["**/*.{c,cc,cxx,cpp,py,java}"],
+    "include": ["**/*.{c,cc,cxx,cpp,py,java,ipynb}"],
     "exclude": ["**/scratch/**"],
     "order": ["Week-01/bit_stuffing.cpp"], // the rest follow in natural order
 
@@ -300,6 +307,51 @@ paths containing spaces work without any quoting on your part.
 
 ---
 
+## Notebooks
+
+A `.ipynb` is picked up like any other file. Nothing is executed: the notebook
+already records what each cell printed, so labpress reuses that. Re-running the
+cells could produce something you never saw, and it would mean having Jupyter
+installed to build a PDF.
+
+That has one consequence worth knowing: **what you see is what was saved**. Run
+all the cells and save the notebook before building, or the record comes out as
+source with no output. labpress warns on stderr when a notebook has code cells
+but no stored outputs.
+
+What comes through:
+
+| In the notebook           | In the record                                      |
+| ------------------------- | -------------------------------------------------- |
+| Markdown cell             | Prose - headings, lists, tables, quotes, images    |
+| Code cell                 | Highlighted source with its output attached below  |
+| `print()` output, results | A terminal block, stderr in red                    |
+| Plots and images          | Embedded in the page, at printable size            |
+| Tracebacks                | The error, with the terminal colour codes stripped |
+| Raw cell                  | A plain block, as written                          |
+
+A leading `# Heading` in the first cell becomes the program title and is not
+printed twice. Set `"title"` in the config to override it.
+
+Cell tags work the way nbconvert defines them, which is how you keep the boring
+cells out of a submission:
+
+| Tag                             | Effect                 |
+| ------------------------------- | ---------------------- |
+| `remove-cell` / `hide-cell`     | Drop the cell entirely |
+| `remove-input` / `hide-input`   | Show only the output   |
+| `remove-output` / `hide-output` | Show only the source   |
+
+`runs`, `stdin` and the rest of the run options mean nothing for a notebook -
+there is nothing to feed. `title`, `aim`, `note` and `hide` all still apply.
+
+Outputs that ship only HTML (a pandas table, say) render as their `text/plain`
+twin. Jupyter's HTML comes with its own `<style>` blocks, and those would leak
+into the whole document. LaTeX in a markdown cell prints as written; there is no
+maths renderer.
+
+---
+
 ## Command line
 
 ```
@@ -340,12 +392,13 @@ to compile or run, `6` PDF generation failed.
 
 ## Language defaults
 
-| Language | Compile                              | Run                           |
-| -------- | ------------------------------------ | ----------------------------- |
-| C        | `gcc -O2 -o {bin} {file}`            | `{bin}`                       |
-| C++      | `g++ -O2 -std=c++17 -o {bin} {file}` | `{bin}`                       |
-| Python   | -                                    | `python3 -u {file}`           |
-| Java     | `javac -d {buildDir} {file}`         | `java -cp {buildDir} {class}` |
+| Language | Compile                              | Run                            |
+| -------- | ------------------------------------ | ------------------------------ |
+| C        | `gcc -O2 -o {bin} {file}`            | `{bin}`                        |
+| C++      | `g++ -O2 -std=c++17 -o {bin} {file}` | `{bin}`                        |
+| Python   | -                                    | `python3 -u {file}`            |
+| Java     | `javac -d {buildDir} {file}`         | `java -cp {buildDir} {class}`  |
+| Notebook | -                                    | - (outputs come from the file) |
 
 For Java, the class name is read from the `public class` declaration, so the
 file name doesn't have to match.
@@ -394,6 +447,10 @@ the target:
 **It can't find Chrome for the PDF.** It uses the Chrome, Chromium, Brave or
 Edge you already have and downloads nothing. Set `CHROME_PATH` if yours lives
 somewhere unusual, or use `--to html` and print from the browser.
+
+**A notebook came out with no output.** labpress prints what the file holds,
+and a notebook saved before it was run holds nothing. Run all the cells in
+Jupyter, save, then build again - it warns on stderr when this happens.
 
 **A run shows Input and Output as separate blocks.** That's the degraded mode
 described above - usually plain C without `stdbuf`. Install GNU coreutils, or

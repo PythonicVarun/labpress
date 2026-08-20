@@ -32,6 +32,8 @@ was compiled.
 | `runner.js`     | Spawns programs, feeds stdin, records the transcript                |
 | `transcript.js` | Turns recorded events into the interleaved or split model           |
 | `highlight.js`  | Shiki wrapper, dual light/dark themes                               |
+| `notebook.js`   | Reads .ipynb cells and the outputs already saved in them            |
+| `markdown.js`   | Small Markdown renderer for notebook prose cells                    |
 | `render.js`     | Builds the HTML document                                            |
 | `pdf.js`        | Finds a local Chrome and prints to PDF                              |
 

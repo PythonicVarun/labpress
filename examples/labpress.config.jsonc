@@ -37,5 +37,10 @@
             "aim": "To read a matrix and print its transpose.",
             "runs": [{ "stdin": ["2 3", "1 2 3", "4 5 6"] }],
         },
+        // A notebook needs no runs - its cells already carry their output.
+        // The title comes from the first heading in the notebook itself.
+        "Week-03/search_benchmark.ipynb": {
+            "aim": "To compare linear and binary search as the array grows.",
+        },
     },
 }

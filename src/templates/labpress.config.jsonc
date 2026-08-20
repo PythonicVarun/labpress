@@ -49,7 +49,7 @@
     "split": false,
 
     // Which files become programs.
-    "include": ["**/*.{c,cc,cxx,cpp,py,java}"],
+    "include": ["**/*.{c,cc,cxx,cpp,py,java,ipynb}"],
     "exclude": ["**/scratch/**"],
 
     // Programs not listed here follow in natural sorted order.
