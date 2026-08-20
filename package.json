@@ -8,6 +8,9 @@
         "assignment",
         "practical",
         "syntax-highlighting",
+        "jupyter",
+        "notebook",
+        "ipynb",
         "pdf",
         "print",
         "shiki"
