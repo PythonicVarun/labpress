@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir, platform } from "node:os";
 import path from "node:path";
-import { LANGUAGES, buildCommand } from "./languages.js";
+import { LANGUAGES, buildCommand, isNotebook } from "./languages.js";
 import { discoverPrograms, applyOrder, resolveRoot } from "./discover.js";
 import {
     loadConfig,
@@ -13,6 +13,7 @@ import { compile, execute, applyUnbuffer } from "./runner.js";
 import { buildTranscript } from "./transcript.js";
 import { createCodeHighlighter } from "./highlight.js";
 import { renderDocument } from "./render.js";
+import { parseNotebook, takeTitle } from "./notebook.js";
 
 const IS_WINDOWS = platform() === "win32";
 
@@ -38,8 +39,41 @@ function placeholdersFor(program, index, buildDir, source) {
     };
 }
 
+/**
+ * Notebooks are read only (no re-run).
+ */
+async function buildNotebook(program) {
+    const result = {
+        ...program,
+        source: null,
+        notebook: null,
+        compileError: null,
+        transcripts: [],
+    };
+
+    try {
+        result.notebook = parseNotebook(
+            await readFile(program.absolutePath, "utf8"),
+            program.path,
+        );
+    } catch (error) {
+        result.compileError = error.message;
+        return result;
+    }
+
+    if (!program.hasConfiguredTitle) {
+        result.title = takeTitle(result.notebook) ?? program.title;
+    }
+    return result;
+}
+
 /** Compile if the language needs it, then run every configured input set. */
 async function buildProgram(program, index, { buildDir, skipRun, onProgress }) {
+    if (isNotebook(program.language)) {
+        onProgress?.({ phase: "read", program: program.path });
+        return buildNotebook(program);
+    }
+
     // Trailing newlines would render as an extra numbered blank line.
     const source = (await readFile(program.absolutePath, "utf8")).replace(
         /\s+$/,
@@ -172,6 +206,8 @@ export async function build({
     const highlighter = await createCodeHighlighter(
         built.map((program) => program.language),
         config.theme,
+        // Notebooks carry their own kernel language, Python or otherwise.
+        built.map((program) => program.notebook?.language).filter(Boolean),
     );
 
     const today = new Date().toLocaleDateString(undefined, {

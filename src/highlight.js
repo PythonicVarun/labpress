@@ -1,4 +1,4 @@
-import { createHighlighter, bundledThemes } from "shiki";
+import { createHighlighter, bundledThemes, bundledLanguages } from "shiki";
 import { LANGUAGES } from "./languages.js";
 
 const LIGHT_FALLBACK = "github-light";
@@ -27,17 +27,25 @@ export function availableThemes() {
  * Create a highlighter loaded with just the languages actually in use, so
  * startup stays quick rather than pulling in every bundled grammar.
  */
-export async function createCodeHighlighter(languageIds, theme) {
+export async function createCodeHighlighter(
+    languageIds,
+    theme,
+    extraLangs = [],
+) {
     const { light, dark } = pickThemes(theme);
     const langs = [
         ...new Set(
-            languageIds.map((id) => LANGUAGES[id]?.shikiLang).filter(Boolean),
+            [
+                ...languageIds.map((id) => LANGUAGES[id]?.shikiLang),
+                ...extraLangs,
+                "text",
+            ].filter((lang) => lang && lang in bundledLanguages),
         ),
     ];
 
     const highlighter = await createHighlighter({
         themes: [light, dark],
-        langs: langs.length ? langs : ["text"],
+        langs,
     });
 
     return {
@@ -46,8 +54,10 @@ export async function createCodeHighlighter(languageIds, theme) {
          * Render code as HTML carrying both palettes as CSS variables, so the
          * on-screen light/dark toggle recolours without re-highlighting.
          */
-        highlight(code, languageId) {
-            const lang = LANGUAGES[languageId]?.shikiLang ?? "text";
+        highlight(code, languageId, override = null) {
+            const wanted = override ?? LANGUAGES[languageId]?.shikiLang;
+            // An unusual kernel still prints, just without colour.
+            const lang = langs.includes(wanted) ? wanted : "text";
             const html = highlighter.codeToHtml(code, {
                 lang,
                 themes: { light, dark },

@@ -237,6 +237,8 @@ async function runBuild(target, values, log) {
         skipRun: values["no-run"] === true,
         keepBuildDir: values.keep === true,
         onProgress(event) {
+            if (event.phase === "read")
+                log.info(`  reading   ${event.program}`);
             if (event.phase === "compile")
                 log.info(`  compiling ${event.program}`);
             if (event.phase === "run") {
@@ -388,6 +390,12 @@ function collectProblems(programs) {
     for (const program of programs) {
         if (program.compileError) {
             problems.push(`${program.path}: failed to compile`);
+        }
+        // A notebook with no stored outputs prints as source only
+        if (program.notebook?.hasCode && !program.notebook.hasOutputs) {
+            problems.push(
+                `${program.path}: saved without cell outputs - run it in Jupyter, save, then build again`,
+            );
         }
         for (const transcript of program.transcripts ?? []) {
             if (transcript.failed) {

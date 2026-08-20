@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LANGUAGES } from "./languages.js";
+import { LANGUAGES, isNotebook } from "./languages.js";
+import { renderMarkdown } from "./markdown.js";
+import { escapeHtml } from "./html.js";
+
+export { escapeHtml };
 
 const ASSETS = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
@@ -10,14 +14,6 @@ const ASSETS = path.join(
 
 export const FOOTER_TEXT =
     'Generated with <a href="https://www.npmjs.com/package/labpress">labpress</a>';
-
-export function escapeHtml(text) {
-    return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
 
 /** Blank strings and nullish values shouldn't render an empty row. */
 function present(value) {
@@ -151,7 +147,81 @@ function renderRun(transcript, index, total) {
             </div>`;
 }
 
-function renderProgram(program, index, highlighted) {
+/** One stored output: a picture, a traceback, or a block of text. */
+function renderOutput(output) {
+    if (output.kind === "image") {
+        return `<figure class="nb-output nb-figure"><img src="${output.src}" alt=""></figure>`;
+    }
+
+    if (output.kind === "error") {
+        const head = output.evalue
+            ? `${output.ename}: ${output.evalue}`
+            : output.ename;
+        const traceback = output.traceback
+            ? `<pre class="terminal"><span class="stderr">${escapeHtml(output.traceback)}</span></pre>`
+            : "";
+        return `<div class="nb-output nb-error">
+                    <div class="nb-error-head">${escapeHtml(head)}</div>
+                    ${traceback}
+                </div>`;
+    }
+
+    const text = escapeHtml(output.text);
+    const isStderr = output.kind === "stream" && output.stream === "stderr";
+    return `<pre class="nb-output terminal">${
+        isStderr ? `<span class="stderr">${text}</span>` : text
+    }</pre>`;
+}
+
+function renderCell(cell, program, highlighter) {
+    if (cell.type === "markdown") {
+        return `<section class="nb-cell nb-prose">${renderMarkdown(
+            cell.source,
+            {
+                attachments: cell.attachments,
+            },
+        )}</section>`;
+    }
+
+    if (cell.type === "raw") {
+        return `<section class="nb-cell nb-raw"><pre class="terminal">${escapeHtml(
+            cell.source,
+        )}</pre></section>`;
+    }
+
+    const code = cell.source
+        ? `<div class="code">${highlighter.highlight(
+              cell.source,
+              program.language,
+              program.notebook.language,
+          )}</div>`
+        : "";
+
+    // The execution count worth keeping.
+    const count = cell.executionCount
+        ? `<span class="nb-count">[${escapeHtml(cell.executionCount)}]</span>`
+        : "";
+
+    const outputs = cell.outputs.length
+        ? `<div class="nb-outputs">
+                    <div class="nb-out-head"><span>Output</span>${count}</div>
+                    ${cell.outputs.map(renderOutput).join("\n                    ")}
+                </div>`
+        : "";
+
+    return `<section class="nb-cell nb-code">${code}${outputs}</section>`;
+}
+
+function renderNotebook(program, highlighter) {
+    const cells = program.notebook.cells
+        .map((cell) => renderCell(cell, program, highlighter))
+        .join("\n            ");
+    return `<div class="notebook">
+            ${cells}
+        </div>`;
+}
+
+function renderProgram(program, index, highlighter) {
     const language = LANGUAGES[program.language]?.name ?? program.language;
     const aim = present(program.aim)
         ? `<p class="aim"><strong>Aim.</strong> ${escapeHtml(program.aim)}</p>`
@@ -168,8 +238,12 @@ function renderProgram(program, index, highlighted) {
               .join("\n            ")
         : "";
 
+    const failureHeading = isNotebook(program.language)
+        ? "Could not read this notebook"
+        : "Compilation failed";
+
     const compileError = program.compileError
-        ? `<div class="run"><div class="run-head"><span>Compilation failed</span></div>` +
+        ? `<div class="run"><div class="run-head"><span>${failureHeading}</span></div>` +
           `<pre class="terminal"><span class="stderr">${escapeHtml(
               program.compileError,
           )}</span></pre></div>`
@@ -188,10 +262,24 @@ function renderProgram(program, index, highlighted) {
             <div class="program-meta">${escapeHtml(program.path)} &middot; ${escapeHtml(language)}</div>
             ${aim}${note}
         </header>
-        <div class="section-label">Source code</div>
-        <div class="code">${highlighted}</div>
-        ${outputSection}
+        ${renderBody(program, highlighter, outputSection)}
     </article>`;
+}
+
+/** A notebook is one flow of cells; everything else is source then output. */
+function renderBody(program, highlighter, outputSection) {
+    if (isNotebook(program.language) && program.notebook) {
+        return `<div class="section-label">Notebook</div>
+        ${renderNotebook(program, highlighter)}`;
+    }
+
+    const highlighted = program.source
+        ? `<div class="section-label">Source code</div>
+        <div class="code">${highlighter.highlight(program.source, program.language)}</div>`
+        : "";
+
+    return `${highlighted}
+        ${outputSection}`;
 }
 
 function renderFooter(footer) {
@@ -215,13 +303,7 @@ export async function renderDocument({
     ]);
 
     const body = programs
-        .map((program, index) =>
-            renderProgram(
-                program,
-                index,
-                highlighter.highlight(program.source, program.language),
-            ),
-        )
+        .map((program, index) => renderProgram(program, index, highlighter))
         .join("\n    ");
 
     const baseTitle = config.title ?? "Lab Record";

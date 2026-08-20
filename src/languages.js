@@ -31,6 +31,17 @@ export const LANGUAGES = {
         run: `${IS_WINDOWS ? "python" : "python3"} -u {file}`,
         unbuffer: null,
     },
+    notebook: {
+        name: "Jupyter Notebook",
+        // Kernels other than Python override this per file.
+        shikiLang: "python",
+        extensions: [".ipynb"],
+        // Nothing to build or run - the outputs are already in the file.
+        compile: null,
+        run: null,
+        unbuffer: null,
+        notebook: true,
+    },
     java: {
         name: "Java",
         shikiLang: "java",
@@ -46,6 +57,11 @@ const EXTENSION_MAP = new Map(
         lang.extensions.map((ext) => [ext, id]),
     ),
 );
+
+/** True for languages whose "source" is a document with its outputs inside. */
+export function isNotebook(languageId) {
+    return LANGUAGES[languageId]?.notebook === true;
+}
 
 /** Detect a language id from a file path, or null if unsupported. */
 export function detectLanguage(filePath) {

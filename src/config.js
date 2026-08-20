@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { LANGUAGES } from "./languages.js";
+import { LANGUAGES, isNotebook } from "./languages.js";
 
 const CONFIG_NAMES = [
     "labpress.config.jsonc",
@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = {
     dates: {},
     // true emits one document per immediate subdirectory (one per week).
     split: false,
-    include: ["**/*.{c,cc,cxx,cpp,py,java}"],
+    include: ["**/*.{c,cc,cxx,cpp,py,java,ipynb}"],
     exclude: [],
     order: [],
     defaults: {
@@ -216,6 +216,32 @@ export async function resolveProgram(program, config, root) {
     const languageOverride = config.languages?.[program.language] ?? {};
     const defaults = config.defaults ?? DEFAULT_CONFIG.defaults;
 
+    // A notebook is never executed, so stdin and runs mean nothing for it.
+    const runs = isNotebook(program.language)
+        ? []
+        : await resolveRuns(entry, program, config, root);
+
+    return {
+        ...program,
+        title: entry.title ?? program.title,
+        hasConfiguredTitle: entry.title != null,
+        aim: entry.aim ?? null,
+        note: entry.note ?? null,
+        hide: entry.hide === true,
+        compile: entry.compile ?? languageOverride.compile ?? language.compile,
+        run: entry.run ?? languageOverride.run ?? language.run,
+        unbuffer:
+            entry.unbuffer ?? languageOverride.unbuffer ?? defaults.unbuffer,
+        languageUnbuffer: language.unbuffer,
+        compileTimeout: defaults.compileTimeout,
+        transcript: entry.transcript ?? config.transcript,
+        runs,
+    };
+}
+
+/** Runs come from the config, else from input files, else one bare run. */
+async function resolveRuns(entry, program, config, root) {
+    const defaults = config.defaults ?? DEFAULT_CONFIG.defaults;
     let runSpecs = entry.runs;
     if (!Array.isArray(runSpecs) || runSpecs.length === 0) {
         runSpecs = program.inputFiles.length
@@ -230,22 +256,7 @@ export async function resolveProgram(program, config, root) {
     for (const [index, run] of runSpecs.entries()) {
         runs.push(await normaliseRun(run, index, { root, program, defaults }));
     }
-
-    return {
-        ...program,
-        title: entry.title ?? program.title,
-        aim: entry.aim ?? null,
-        note: entry.note ?? null,
-        hide: entry.hide === true,
-        compile: entry.compile ?? languageOverride.compile ?? language.compile,
-        run: entry.run ?? languageOverride.run ?? language.run,
-        unbuffer:
-            entry.unbuffer ?? languageOverride.unbuffer ?? defaults.unbuffer,
-        languageUnbuffer: language.unbuffer,
-        compileTimeout: defaults.compileTimeout,
-        transcript: entry.transcript ?? config.transcript,
-        runs: runs.filter((run) => !run.hide),
-    };
+    return runs.filter((run) => !run.hide);
 }
 
 /**
