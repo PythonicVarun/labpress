@@ -11,9 +11,10 @@ npm install
 node src/cli.js ./examples --no-open -o /tmp/record.html
 ```
 
-`examples/` holds three small programs and a config that exercises interactive
-input in C, C++ and Python - it's what the screenshot in the README is built
-from, so it's the quickest way to see a change end to end.
+`examples/` holds three small programs and a Jupyter notebook, with a config
+that exercises interactive input in C, C++ and Python - it's what the screenshot
+in the README is built from, so it's the quickest way to see a change end to
+end.
 
 There's no build step - the package ships the source in `src/` and runs on Node
 20+. `--no-open` keeps it from launching a browser on every iteration, and
@@ -34,6 +35,7 @@ was compiled.
 | `highlight.js`  | Shiki wrapper, dual light/dark themes                               |
 | `notebook.js`   | Reads .ipynb cells and the outputs already saved in them            |
 | `markdown.js`   | Small Markdown renderer for notebook prose cells                    |
+| `html.js`       | The one HTML-escaping helper everything else shares                 |
 | `render.js`     | Builds the HTML document                                            |
 | `pdf.js`        | Finds a local Chrome and prints to PDF                              |
 
