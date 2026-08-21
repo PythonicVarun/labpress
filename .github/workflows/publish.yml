@@ -44,11 +44,22 @@ jobs:
                   mkdir -p /tmp/smoke && cd /tmp/smoke
                   npm init -y >/dev/null
                   npm install --no-audit --no-fund "$GITHUB_WORKSPACE/$tarball"
-                  ./node_modules/.bin/labpress --version
-                  ./node_modules/.bin/labpress themes >/dev/null
+                  labpress() { ./node_modules/.bin/labpress "$@"; }
+
+                  labpress --version
+                  labpress themes >/dev/null
+
                   printf 'print("hi from labpress")\n' > hello.py
-                  ./node_modules/.bin/labpress . --no-open --out record.html
+                  printf '%s' '{"cells":[{"cell_type":"code","execution_count":1,"metadata":{},"source":["print(\"from a notebook\")"],"outputs":[{"output_type":"stream","name":"stdout","text":["cells already ran\n"]}]}],"metadata":{},"nbformat":4,"nbformat_minor":5}' > notes.ipynb
+
+                  # HTML is the build whose contents we can assert on.
+                  labpress . --no-open --to html --out record.html
                   grep -q "hi from labpress" record.html
+                  grep -q "cells already ran" record.html
+
+                  # And the default, which drives the runner's Chrome.
+                  labpress . --no-open --out record.pdf
+                  [ -s record.pdf ]
 
             # Staged, not published
             - name: Stage the release on npm
