@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { collapseRepeats } from "./transcript.js";
 
 /**
  * Read the cells and the outputs in notebook.
@@ -17,8 +18,66 @@ export function stripAnsi(text) {
 
 /** Notebook JSON stores text as either one string or a list of lines. */
 export function joinSource(value) {
-    if (Array.isArray(value)) return value.join("");
-    return typeof value === "string" ? value : "";
+    const text = Array.isArray(value)
+        ? value.join("")
+        : typeof value === "string"
+          ? value
+          : "";
+
+    // A notebook saved on Windows carries CRLF into every cell.
+    return text.replace(/\r\n?/g, "\n");
+}
+
+// One cell can print megabytes. None of that belongs in a final PDF.
+const MAX_OUTPUT = 8000;
+
+/**
+ * Squash a runaway output down to something printable: repeated lines
+ * collapse to one line plus a count, and the rest is cut with a note.
+ */
+function clampOutput(text) {
+    const parts = collapseRepeats(text)
+        .map((part) => ({
+            type: part.type === "note" ? "meta" : "text",
+            value: part.value,
+        }))
+        .filter((part) => part.value !== "");
+
+    let budget = MAX_OUTPUT;
+    const kept = [];
+    for (const part of parts) {
+        if (budget <= 0) break;
+        kept.push(
+            part.value.length <= budget
+                ? part
+                : { ...part, value: part.value.slice(0, budget) },
+        );
+        budget -= part.value.length;
+    }
+
+    if (budget <= 0) {
+        kept.push({
+            type: "meta",
+            value: "\n... the rest of this output was cut by labpress ...",
+        });
+    }
+    return kept;
+}
+
+/** The interactive formats that only exist while a kernel is running. */
+const LIVE_FORMATS = [
+    ["application/vnd.jupyter.widget-view+json", "Interactive widget"],
+    ["application/vnd.plotly.v1+json", "Plotly figure"],
+    ["application/vnd.vegalite", "Vega-Lite chart"],
+    ["application/vnd.vega", "Vega chart"],
+    ["application/vnd.bokehjs", "Bokeh figure"],
+];
+
+function describeBundle(mimes) {
+    for (const [prefix, label] of LIVE_FORMATS) {
+        if (mimes.some((mime) => mime.startsWith(prefix))) return label;
+    }
+    return mimes[0] ?? "Unknown output";
 }
 
 function dataUri(mime, payload) {
@@ -60,17 +119,30 @@ function fromBundle(data) {
             return { kind: "image", mime, src: dataUri(mime, data[mime]) };
         }
     }
+
+    // display(Markdown(...)) means it, so render it as prose rather than
+    // printing the asterisks.
+    if (data["text/markdown"]) {
+        const text = joinSource(data["text/markdown"]).trim();
+        if (text) return { kind: "markdown", text };
+    }
+
     for (const mime of TEXT_MIMES) {
         if (data[mime]) {
             const text = stripAnsi(joinSource(data[mime])).trimEnd();
-            if (text) return { kind: "text", text };
+            if (text) return { kind: "text", parts: clampOutput(text) };
         }
     }
     if (data["text/html"]) {
         const text = htmlToText(joinSource(data["text/html"]));
-        if (text) return { kind: "text", text };
+        if (text) return { kind: "text", parts: clampOutput(text) };
     }
-    return null;
+
+    // Nothing printable left.
+    const mimes = Object.keys(data);
+    return mimes.length
+        ? { kind: "placeholder", label: describeBundle(mimes) }
+        : null;
 }
 
 function normaliseOutput(output) {
@@ -80,7 +152,7 @@ function normaliseOutput(output) {
         return {
             kind: "stream",
             stream: output.name === "stderr" ? "stderr" : "stdout",
-            text,
+            parts: clampOutput(text),
         };
     }
 
@@ -96,10 +168,12 @@ function normaliseOutput(output) {
             kind: "error",
             ename: String(output.ename ?? "Error"),
             evalue: String(output.evalue ?? ""),
-            traceback: (output.traceback ?? [])
-                .map((line) => stripAnsi(String(line)))
-                .join("\n")
-                .trimEnd(),
+            traceback: clampOutput(
+                (Array.isArray(output.traceback) ? output.traceback : [])
+                    .map((line) => stripAnsi(String(line)))
+                    .join("\n")
+                    .trimEnd(),
+            ),
         };
     }
 
@@ -123,6 +197,9 @@ function tagsOf(cell) {
 }
 
 function normaliseCell(cell) {
+    // Manually edited notebooks can have odd things in the cell list.
+    if (!cell || typeof cell !== "object") return null;
+
     const tags = tagsOf(cell);
     if (tags.has("remove-cell") || tags.has("hide-cell")) return null;
 
@@ -138,9 +215,10 @@ function normaliseCell(cell) {
     if (cell.cell_type !== "code") return null;
 
     const hideOutput = tags.has("hide-output") || tags.has("remove-output");
+    const stored = Array.isArray(cell.outputs) ? cell.outputs : [];
     const outputs = hideOutput
         ? []
-        : (cell.outputs ?? []).map(normaliseOutput).filter(Boolean);
+        : stored.map(normaliseOutput).filter(Boolean);
 
     const hideInput = tags.has("hide-input") || tags.has("remove-input");
     const visibleSource = hideInput ? null : source;
@@ -169,7 +247,9 @@ function languageOf(notebook) {
 export function parseNotebook(text, file) {
     let json;
     try {
-        json = JSON.parse(text);
+        // Windows editor may leave a byte order mark, and JSON.parse
+        // refuses to look past it.
+        json = JSON.parse(text.replace(/^\uFEFF/, ""));
     } catch (error) {
         throw new Error(`Could not parse ${file}: ${error.message}`);
     }

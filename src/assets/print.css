@@ -501,6 +501,21 @@ html.dark-theme .shiki span {
     border-radius: 4px;
 }
 
+/* Something the notebook could only have shown with a kernel behind it. */
+.nb-placeholder {
+    margin: 10px 12px;
+    padding: 9px 12px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-style: italic;
+    color: var(--muted);
+}
+
+.nb-md-output {
+    padding: 4px 12px 10px;
+}
+
 .nb-error {
     padding: 10px 12px 12px;
     background: var(--danger-soft);

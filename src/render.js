@@ -147,18 +147,41 @@ function renderRun(transcript, index, total) {
             </div>`;
 }
 
-/** One stored output: a picture, a traceback, or a block of text. */
+/** Output text, with any labpress note in it kept visibly a note. */
+function renderParts(parts) {
+    return parts
+        .map((part) =>
+            part.type === "meta"
+                ? `<span class="meta">${escapeHtml(part.value)}</span>`
+                : escapeHtml(part.value),
+        )
+        .join("");
+}
+
+/** One stored output: a picture, a traceback, prose, or a block of text. */
 function renderOutput(output) {
     if (output.kind === "image") {
         return `<figure class="nb-output nb-figure"><img src="${output.src}" alt=""></figure>`;
+    }
+
+    if (output.kind === "placeholder") {
+        return `<div class="nb-output nb-placeholder">${escapeHtml(output.label)} -
+                    it only exists while the kernel is running, so the notebook
+                    has nothing printable saved for it.</div>`;
+    }
+
+    if (output.kind === "markdown") {
+        return `<div class="nb-output nb-prose nb-md-output">${renderMarkdown(
+            output.text,
+        )}</div>`;
     }
 
     if (output.kind === "error") {
         const head = output.evalue
             ? `${output.ename}: ${output.evalue}`
             : output.ename;
-        const traceback = output.traceback
-            ? `<pre class="terminal"><span class="stderr">${escapeHtml(output.traceback)}</span></pre>`
+        const traceback = output.traceback.length
+            ? `<pre class="terminal"><span class="stderr">${renderParts(output.traceback)}</span></pre>`
             : "";
         return `<div class="nb-output nb-error">
                     <div class="nb-error-head">${escapeHtml(head)}</div>
@@ -166,10 +189,10 @@ function renderOutput(output) {
                 </div>`;
     }
 
-    const text = escapeHtml(output.text);
+    const body = renderParts(output.parts);
     const isStderr = output.kind === "stream" && output.stream === "stderr";
     return `<pre class="nb-output terminal">${
-        isStderr ? `<span class="stderr">${text}</span>` : text
+        isStderr ? `<span class="stderr">${body}</span>` : body
     }</pre>`;
 }
 
@@ -269,8 +292,11 @@ function renderProgram(program, index, highlighter) {
 /** A notebook is one flow of cells; everything else is source then output. */
 function renderBody(program, highlighter, outputSection) {
     if (isNotebook(program.language) && program.notebook) {
-        return `<div class="section-label">Notebook</div>
-        ${renderNotebook(program, highlighter)}`;
+        // An empty notebook gets no heading over an empty box.
+        return program.notebook.cells.length
+            ? `<div class="section-label">Notebook</div>
+        ${renderNotebook(program, highlighter)}`
+            : "";
     }
 
     const highlighted = program.source
