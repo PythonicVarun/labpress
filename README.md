@@ -321,14 +321,16 @@ but no stored outputs.
 
 What comes through:
 
-| In the notebook           | In the record                                      |
-| ------------------------- | -------------------------------------------------- |
-| Markdown cell             | Prose - headings, lists, tables, quotes, images    |
-| Code cell                 | Highlighted source with its output attached below  |
-| `print()` output, results | A terminal block, stderr in red                    |
-| Plots and images          | Embedded in the page, at printable size            |
-| Tracebacks                | The error, with the terminal colour codes stripped |
-| Raw cell                  | A plain block, as written                          |
+| In the notebook            | In the record                                      |
+| -------------------------- | -------------------------------------------------- |
+| Markdown cell              | Prose - headings, nested lists, tables, quotes     |
+| Code cell                  | Highlighted source with its output attached below  |
+| `print()` output, results  | A terminal block, stderr in red                    |
+| Plots and images           | Embedded in the page, at printable size            |
+| SVG, pasted-in attachments | Embedded too                                       |
+| Tracebacks                 | The error, with the terminal colour codes stripped |
+| `display(Markdown(...))`   | Rendered as prose, not as its own asterisks        |
+| Raw cell                   | A plain block, as written                          |
 
 A leading `# Heading` in the first cell becomes the program title and is not
 printed twice. Set `"title"` in the config to override it.
@@ -345,10 +347,21 @@ cells out of a submission:
 `runs`, `stdin` and the rest of the run options mean nothing for a notebook -
 there is nothing to feed. `title`, `aim`, `note` and `hide` all still apply.
 
+**Interactive outputs can't be printed.** A Plotly figure, a Vega chart or an
+ipywidget stores a live model reference, not a picture - there is nothing in the
+file to put on paper. Those leave a short note in the record saying so, rather
+than a silent gap. Export them as images in the notebook (`fig.write_image(...)`,
+or `%matplotlib inline`) and they come through like any other plot.
+
+**Runaway output is trimmed.** A cell that printed the same line 4000 times
+collapses to one line plus a count, the same way a program run does, and very
+long outputs are cut with a note. Nobody submits 40 pages of `retry`.
+
 Outputs that ship only HTML (a pandas table, say) render as their `text/plain`
 twin. Jupyter's HTML comes with its own `<style>` blocks, and those would leak
-into the whole document. LaTeX in a markdown cell prints as written; there is no
-maths renderer.
+into the whole document. Markdown cells keep the inline HTML people actually
+type - `<br>`, `<b>`, `<img>`, a centred `<div>` - and show anything else as its
+own text. LaTeX prints as written; there is no maths renderer.
 
 ---
 
