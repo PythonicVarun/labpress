@@ -356,11 +356,16 @@ function renderBody(program, highlighter, outputSection) {
         ${outputSection}`;
 }
 
-function renderFooter(footer) {
-    if (footer === false) return "";
+function renderFrame(body, footer) {
+    if (footer === false) return body;
+
     const content =
         typeof footer === "string" ? escapeHtml(footer) : FOOTER_TEXT;
-    return `<footer class="page-footer">${content}</footer>`;
+    return `<table class="frame"><tbody><tr><td>
+    ${body}
+</td></tr></tbody>
+<tfoot><tr><td class="footer-space" aria-hidden="true">${content}</td></tr></tfoot></table>
+<footer class="page-footer">${content}</footer>`;
 }
 
 /** Assemble the whole self-contained page. */
@@ -411,12 +416,14 @@ ${css}
         <span class="moon-icon">&#9790;</span>
     </button>
 </div>
-<main class="doc">
+${renderFrame(
+    `<main class="doc">
     ${renderCover(config, generatedAt, group)}
     ${renderToc(programs, config)}
     ${body}
-</main>
-${renderFooter(config.footer)}
+</main>`,
+    config.footer,
+)}
 <script>
 ${viewerJs}
 </script>

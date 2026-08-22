@@ -667,6 +667,18 @@ html.dark-theme .shiki span {
     overflow-wrap: anywhere;
 }
 
+.frame,
+.frame > tbody,
+.frame > tfoot,
+.frame tr,
+.frame td {
+    display: block;
+}
+
+.footer-space {
+    display: none;
+}
+
 /* Footer repeats on every printed page in Chrome. */
 .page-footer {
     position: fixed;
@@ -727,6 +739,38 @@ html.dark-theme .shiki span {
         display: none !important;
     }
 
+    .frame {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .frame > tbody {
+        display: table-row-group;
+    }
+
+    .frame > tfoot {
+        display: table-footer-group;
+    }
+
+    .frame tr {
+        display: table-row;
+    }
+
+    .frame td {
+        display: table-cell;
+        padding: 0;
+    }
+
+    /* Same box as the footer with no ink in it: it exists to hold the gap. */
+    .footer-space {
+        display: table-cell;
+        visibility: hidden;
+        height: 10mm;
+        padding: 0;
+        font-size: 0.68rem;
+    }
+
     .page-footer {
         border-top: none;
     }
@@ -742,6 +786,16 @@ html.dark-theme .shiki span {
 
     .code {
         break-inside: auto;
+    }
+
+    .code,
+    .run,
+    .nb-cell.nb-code {
+        overflow: visible;
+    }
+
+    .code .line {
+        break-inside: avoid;
     }
 
     /* A picture can't be split down the middle; text can. */
