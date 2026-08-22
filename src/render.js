@@ -77,6 +77,23 @@ function renderToc(programs, config) {
     </section>`;
 }
 
+/*
+ * A block this short asks not to be broken, because the gap it leaves behind
+ * is small. A longer one flows instead: refusing to break it only pushes it
+ * to the next page, wasting the rest of this one, and a block taller than a
+ * page has to break there anyway.
+ */
+const KEEP_TOGETHER_LINES = 12;
+
+function countLines(text) {
+    return String(text).replace(/\n$/, "").split("\n").length;
+}
+
+/** Class list for a block that should stay whole only if it plausibly fits. */
+function keepTogether(lines) {
+    return lines <= KEEP_TOGETHER_LINES ? " keep-together" : "";
+}
+
 /** One interleaved terminal block: output as-is, typed input marked up. */
 function renderSegments(segments) {
     if (!segments.length) {
@@ -141,10 +158,33 @@ function renderRun(transcript, index, total) {
         );
     }
 
-    return `<div class="run">
+    // Joined first: a segment boundary isn't a line break.
+    const lines =
+        transcript.mode === "split"
+            ? countLines(`${transcript.inputText}\n${transcript.outputText}`)
+            : countLines(
+                  transcript.segments.map((segment) => segment.text).join(""),
+              );
+
+    return `<div class="run${keepTogether(lines)}">
                 <div class="run-head"><span>${heading}</span>${label}</div>
                 ${note}${body}${notices.join("")}
             </div>`;
+}
+
+/** How many lines an output takes, or Infinity for one that can't be split. */
+function outputLines(output) {
+    if (output.kind === "image") return Infinity;
+    if (output.kind === "placeholder") return 2;
+    if (output.kind === "markdown") return countLines(output.text);
+    if (output.kind === "error") {
+        return 1 + countLines(joinParts(output.traceback));
+    }
+    return countLines(joinParts(output.parts));
+}
+
+function joinParts(parts) {
+    return parts.map((part) => part.value).join("");
 }
 
 /** Output text, with any labpress note in it kept visibly a note. */
@@ -228,8 +268,13 @@ function renderCell(cell, program, highlighter) {
           )}]</span></div>`
         : "";
 
+    const lines = cell.outputs.reduce(
+        (total, output) => total + outputLines(output),
+        1,
+    );
+
     const outputs = cell.outputs.length
-        ? `<div class="nb-outputs">
+        ? `<div class="nb-outputs${keepTogether(lines)}">
                     <div class="nb-out-head"><span>Output</span></div>
                     ${cell.outputs.map(renderOutput).join("\n                    ")}
                 </div>`

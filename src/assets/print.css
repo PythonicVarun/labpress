@@ -339,7 +339,20 @@ html.dark-theme .shiki span {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+}
+
+.keep-together {
     break-inside: avoid;
+}
+
+.run-head,
+.nb-out-head {
+    break-after: avoid;
+}
+
+.terminal {
+    orphans: 3;
+    widows: 3;
 }
 
 .run-head {
@@ -452,7 +465,6 @@ html.dark-theme .shiki span {
 .nb-outputs {
     border-top: 1px solid var(--border);
     background: var(--bg);
-    break-inside: avoid;
 }
 
 /* A cell whose source is hidden starts with its output, under the count
@@ -719,7 +731,6 @@ html.dark-theme .shiki span {
         border-top: none;
     }
 
-    .run,
     .cover,
     .program header {
         break-inside: avoid;
@@ -733,13 +744,12 @@ html.dark-theme .shiki span {
         break-inside: auto;
     }
 
-    .nb-outputs,
+    /* A picture can't be split down the middle; text can. */
     .nb-figure,
     .nb-prose table {
         break-inside: avoid;
     }
 
-    /* A long cell may break; its output block should not. */
     .nb-cell.nb-code {
         break-inside: auto;
     }
