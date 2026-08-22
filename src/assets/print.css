@@ -455,9 +455,23 @@ html.dark-theme .shiki span {
     break-inside: avoid;
 }
 
-/* A cell whose source is hidden starts with its output. */
-.nb-code > .nb-outputs:first-child {
+/* A cell whose source is hidden starts with its output, under the count
+   at most - there is no code above it to rule off. */
+.nb-code > .nb-outputs:first-child,
+.nb-cell-head + .nb-outputs {
     border-top: 0;
+}
+
+/* The execution count sits over its own cell, printed or not. */
+.nb-cell-head {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 12px 0;
+}
+
+/* The code under it supplies the rest of the gap. */
+.nb-cell-head + .code pre.shiki {
+    padding-top: 4px;
 }
 
 .nb-out-head {

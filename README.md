@@ -335,6 +335,11 @@ What comes through:
 A leading `# Heading` in the first cell becomes the program title and is not
 printed twice. Set `"title"` in the config to override it.
 
+The `[n]` over a cell is its execution count, straight from the file. Colab
+leaves that field empty on a lot of cells, so it shows up only where the
+notebook actually recorded one - there is nothing for labpress to recover when
+it doesn't.
+
 Cell tags work the way nbconvert defines them, which is how you keep the boring
 cells out of a submission:
 

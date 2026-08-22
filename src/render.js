@@ -220,19 +220,22 @@ function renderCell(cell, program, highlighter) {
           )}</div>`
         : "";
 
-    // The execution count worth keeping.
+    // The execution count belongs to the cell, not to its output: plenty of
+    // cells carry a number and print nothing at all.
     const count = cell.executionCount
-        ? `<span class="nb-count">[${escapeHtml(cell.executionCount)}]</span>`
+        ? `<div class="nb-cell-head"><span class="nb-count">[${escapeHtml(
+              cell.executionCount,
+          )}]</span></div>`
         : "";
 
     const outputs = cell.outputs.length
         ? `<div class="nb-outputs">
-                    <div class="nb-out-head"><span>Output</span>${count}</div>
+                    <div class="nb-out-head"><span>Output</span></div>
                     ${cell.outputs.map(renderOutput).join("\n                    ")}
                 </div>`
         : "";
 
-    return `<section class="nb-cell nb-code">${code}${outputs}</section>`;
+    return `<section class="nb-cell nb-code">${count}${code}${outputs}</section>`;
 }
 
 function renderNotebook(program, highlighter) {
