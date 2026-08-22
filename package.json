@@ -1,6 +1,6 @@
 {
     "name": "labpress",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Turn a folder of lab programs into a print-ready record: syntax-highlighted source, real inputs, real captured output.",
     "keywords": [
         "lab",
